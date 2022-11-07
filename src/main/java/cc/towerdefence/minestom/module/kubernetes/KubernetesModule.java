@@ -5,6 +5,8 @@ import cc.towerdefence.api.agonessdk.IgnoredStreamObserver;
 import cc.towerdefence.minestom.MinestomServer;
 import cc.towerdefence.minestom.module.Module;
 import cc.towerdefence.minestom.module.ModuleData;
+import cc.towerdefence.minestom.module.core.PlayerTrackerManager;
+import cc.towerdefence.minestom.module.kubernetes.command.currentserver.CurrentServerCommand;
 import dev.agones.sdk.AgonesSDKProto;
 import dev.agones.sdk.SDKGrpc;
 import dev.agones.sdk.alpha.AlphaAgonesSDKProto;
@@ -14,6 +16,7 @@ import io.kubernetes.client.ProtoClient;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.util.Config;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
@@ -55,6 +58,11 @@ public class KubernetesModule extends Module {
             this.sdk = SDKGrpc.newStub(agonesChannel);
             this.betaSdk = dev.agones.sdk.beta.SDKGrpc.newFutureStub(agonesChannel);
             this.alphaSdk = dev.agones.sdk.alpha.SDKGrpc.newFutureStub(agonesChannel);
+
+            if (!MinestomServer.DEV_ENVIRONMENT) {
+                PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(this.eventNode);
+                MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
+            }
         } catch (IOException e) {
             LOGGER.error("Failed to initialise Kubernetes client", e);
             return false;

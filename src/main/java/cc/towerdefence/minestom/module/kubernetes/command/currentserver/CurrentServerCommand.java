@@ -1,4 +1,4 @@
-package cc.towerdefence.minestom.module.core.command;
+package cc.towerdefence.minestom.module.kubernetes.command.currentserver;
 
 import cc.towerdefence.minestom.module.core.PlayerTrackerManager;
 import net.kyori.adventure.text.Component;
