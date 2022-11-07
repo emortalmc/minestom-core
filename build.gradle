@@ -59,8 +59,8 @@ publishing {
 
     publications {
         maven(MavenPublication) {
-            groupId = 'cc.towerdefence.api'
-            artifactId = 'agones-sdk'
+            groupId = 'cc.towerdefence.minestom'
+            artifactId = 'core'
 
             def commitHash = System.getenv("COMMIT_HASH_SHORT")
             def releaseVersion = System.getenv("RELEASE_VERSION")
