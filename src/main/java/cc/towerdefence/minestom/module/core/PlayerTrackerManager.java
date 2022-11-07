@@ -1,6 +1,7 @@
 package cc.towerdefence.minestom.module.core;
 
 import cc.towerdefence.api.agonessdk.EmptyStreamObserver;
+import cc.towerdefence.api.model.common.PlayerProto;
 import cc.towerdefence.api.service.PlayerTrackerGrpc;
 import cc.towerdefence.api.service.PlayerTrackerProto;
 import cc.towerdefence.minestom.MinestomServer;
@@ -35,7 +36,7 @@ public class PlayerTrackerManager {
 
     public void retrievePlayerServer(UUID uuid, Consumer<PlayerTrackerProto.OnlineServer> responseConsumer) {
         // todo async
-        this.stub.getPlayerServer(PlayerTrackerProto.GetPlayerServerRequest.newBuilder()
+        this.stub.getPlayerServer(PlayerProto.PlayerRequest.newBuilder()
                 .setPlayerId(uuid.toString())
                 .build(), new StreamObserver<>() {
             @Override
