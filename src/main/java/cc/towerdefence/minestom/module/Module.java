@@ -2,7 +2,6 @@ package cc.towerdefence.minestom.module;
 
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class Module {
@@ -12,10 +11,8 @@ public abstract class Module {
         this.eventNode = eventNode;
     }
 
-    @ApiStatus.Internal
     public abstract boolean onLoad();
 
-    @ApiStatus.Internal
     public abstract void onUnload();
 
     /**
