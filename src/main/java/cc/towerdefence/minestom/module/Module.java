@@ -25,4 +25,7 @@ public abstract class Module {
     public void onReady() {
     }
 
+    public @NotNull EventNode<Event> getEventNode() {
+        return this.eventNode;
+    }
 }
