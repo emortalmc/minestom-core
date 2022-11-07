@@ -35,6 +35,8 @@ public class KubernetesModule extends Module {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KubernetesModule.class);
 
+    private final AgonesSDKProto.KeyValue[] additionalLabels;
+
     private ApiClient apiClient;
     private ProtoClient protoClient;
 
@@ -42,8 +44,14 @@ public class KubernetesModule extends Module {
     private dev.agones.sdk.beta.SDKGrpc.SDKFutureStub betaSdk;
     private dev.agones.sdk.alpha.SDKGrpc.SDKFutureStub alphaSdk;
 
-    public KubernetesModule(EventNode<Event> eventNode) {
+    public KubernetesModule(EventNode<Event> eventNode, AgonesSDKProto.KeyValue... additionalLabels) {
         super(eventNode);
+
+        this.additionalLabels = additionalLabels;
+    }
+
+    public KubernetesModule(EventNode<Event> eventNode) {
+        this(eventNode, new AgonesSDKProto.KeyValue[]{});
     }
 
     @Override
@@ -62,6 +70,11 @@ public class KubernetesModule extends Module {
             if (!MinestomServer.DEV_ENVIRONMENT) {
                 PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(this.eventNode);
                 MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
+            }
+
+            for (AgonesSDKProto.KeyValue label : this.additionalLabels) {
+                this.sdk.setLabel(label, new IgnoredStreamObserver<>());
+                LOGGER.info("Set Agones label {} to {}", label.getKey(), label.getValue());
             }
         } catch (IOException e) {
             LOGGER.error("Failed to initialise Kubernetes client", e);

@@ -85,6 +85,10 @@ public final class MinestomServer {
         VelocityProxy.enable(forwardingSecret);
     }
 
+    public Map<String, Module> getModules() {
+        return this.modules;
+    }
+
     public static final class Builder {
         private String address = getValue("minestom.address", DEFAULT_ADDRESS);
         private int port = Integer.parseInt(getValue("minestom.port", DEFAULT_PORT));
