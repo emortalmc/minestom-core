@@ -46,6 +46,8 @@ public final class MinestomServer {
             if (DEV_ENVIRONMENT && moduleData.productionOnly()) continue;
 
             EventNode<Event> eventNode = EventNode.all(moduleData.name());
+            modulesNode.addChild(eventNode);
+
             Module module = loadableModule.creator().apply(eventNode);
 
             Instant loadStart = Instant.now();
