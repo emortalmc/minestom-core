@@ -19,7 +19,7 @@ repositories {
 dependencies {
     api("cc.towerdefence.api:agones-sdk:1.0.3")
     api("cc.towerdefence.api:grpc-sdk:e0756e1")
-    api("io.kubernetes:client-java:16.0.1")
+    api('io.kubernetes:client-java:16.0.2')
 
     api("com.github.Minestom:Minestom:7eb9d3fdd7")
     implementation("net.kyori:adventure-text-minimessage:4.11.0")
