@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 public class PermissionModule extends Module {
     private PermissionCache permissionCache;
 
-    protected PermissionModule(@NotNull EventNode<Event> eventNode) {
+    public PermissionModule(@NotNull EventNode<Event> eventNode) {
         super(eventNode);
     }
 
