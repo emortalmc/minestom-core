@@ -61,8 +61,8 @@ public final class MinestomServer {
             boolean loadResult = module.onLoad();
             Duration loadDuration = Duration.between(loadStart, Instant.now());
 
-
             if (loadResult) {
+                MODULES.put(loadableModule.clazz(), module);
                 LOGGER.info("Loaded module {} in {}ms with status {} (required: {})", moduleData.name(), loadDuration.toMillis(), loadResult, moduleData.required());
             }
         }
