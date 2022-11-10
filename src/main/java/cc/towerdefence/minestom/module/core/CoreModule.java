@@ -18,7 +18,7 @@ public class CoreModule extends Module {
     @Override
     public boolean onLoad() {
         MinecraftServer.getCommandManager().register(new PerformanceCommand(this.eventNode));
-        return false;
+        return true;
     }
 
     @Override

@@ -27,7 +27,7 @@ public class PermissionModule extends Module {
 
         this.permissionCache = new PermissionCache(permissionService, this.eventNode);
 
-        return false;
+        return true;
     }
 
     @Override

@@ -43,7 +43,7 @@ public class ChatModule extends Module {
                         .append(Component.text(event.getMessage()));
             });
         });
-        return false;
+        return true;
     }
 
     @Override
