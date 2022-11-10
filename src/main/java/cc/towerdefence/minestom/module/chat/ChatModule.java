@@ -20,7 +20,7 @@ import java.util.Optional;
 public class ChatModule extends Module {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
-    protected ChatModule(@NotNull EventNode<Event> eventNode) {
+    public ChatModule(@NotNull EventNode<Event> eventNode) {
         super(eventNode);
     }
 
