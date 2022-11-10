@@ -23,7 +23,7 @@ public class PermissionModule extends Module {
                 .defaultLoadBalancingPolicy("round_robin")
                 .usePlaintext()
                 .build();
-        PermissionServiceGrpc.PermissionServiceFutureStub permissionService = PermissionServiceGrpc.newFutureStub(channel);
+        PermissionServiceGrpc.PermissionServiceBlockingStub permissionService = PermissionServiceGrpc.newBlockingStub(channel);
 
         this.permissionCache = new PermissionCache(permissionService, this.eventNode);
 

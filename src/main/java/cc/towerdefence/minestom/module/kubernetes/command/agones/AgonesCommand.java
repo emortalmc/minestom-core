@@ -14,6 +14,7 @@ public class AgonesCommand extends Command {
 
     public AgonesCommand(KubernetesModule kubernetesModule) {
         super("magones");
+        this.setCondition((source, command) -> source.hasPermission("command.agones"));
 
         this.kubernetesModule = kubernetesModule;
 

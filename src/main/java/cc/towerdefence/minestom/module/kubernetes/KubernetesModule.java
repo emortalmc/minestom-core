@@ -6,6 +6,7 @@ import cc.towerdefence.minestom.MinestomServer;
 import cc.towerdefence.minestom.module.Module;
 import cc.towerdefence.minestom.module.ModuleData;
 import cc.towerdefence.minestom.module.core.PlayerTrackerManager;
+import cc.towerdefence.minestom.module.kubernetes.command.agones.AgonesCommand;
 import cc.towerdefence.minestom.module.kubernetes.command.currentserver.CurrentServerCommand;
 import dev.agones.sdk.AgonesSDKProto;
 import dev.agones.sdk.SDKGrpc;
@@ -70,6 +71,7 @@ public class KubernetesModule extends Module {
             if (!MinestomServer.DEV_ENVIRONMENT) {
                 PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(this.eventNode);
                 MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
+                MinecraftServer.getCommandManager().register(new AgonesCommand(this));
             }
 
             for (AgonesSDKProto.KeyValue label : this.additionalLabels) {

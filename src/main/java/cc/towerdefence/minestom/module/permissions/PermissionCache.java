@@ -3,10 +3,7 @@ package cc.towerdefence.minestom.module.permissions;
 import cc.towerdefence.api.model.common.PlayerProto;
 import cc.towerdefence.api.service.PermissionProto;
 import cc.towerdefence.api.service.PermissionServiceGrpc;
-import cc.towerdefence.api.utils.utils.FunctionalFutureCallback;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.Empty;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -30,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 public class PermissionCache {
@@ -38,9 +34,9 @@ public class PermissionCache {
     private final Map<String, Role> roleCache = Collections.synchronizedMap(new LinkedHashMap<>());
     private final Map<UUID, User> userCache = new ConcurrentHashMap<>();
 
-    private final PermissionServiceGrpc.PermissionServiceFutureStub permissionService;
+    private final PermissionServiceGrpc.PermissionServiceBlockingStub permissionService;
 
-    public PermissionCache(PermissionServiceGrpc.PermissionServiceFutureStub permissionService, EventNode<Event> eventNode) {
+    public PermissionCache(PermissionServiceGrpc.PermissionServiceBlockingStub permissionService, EventNode<Event> eventNode) {
         this.permissionService = permissionService;
 
         eventNode.addListener(PlayerDisconnectEvent.class, this::onDisconnect)
@@ -50,53 +46,41 @@ public class PermissionCache {
     }
 
     private void loadRoles() {
-        ListenableFuture<PermissionProto.RolesResponse> response = this.permissionService.getRoles(Empty.getDefaultInstance());
+        PermissionProto.RolesResponse result = this.permissionService.getRoles(Empty.getDefaultInstance());
 
-        Futures.addCallback(response, FunctionalFutureCallback.create(
-                result -> {
-                    for (PermissionProto.RoleResponse role : result.getRolesList()) {
-                        this.roleCache.put(
-                                role.getId(),
-                                new Role(
-                                        role.getId(),
-                                        Sets.newConcurrentHashSet(role.getPermissionsList().stream()
-                                                .filter(node -> node.getState() == PermissionProto.PermissionNode.PermissionState.ALLOW)
-                                                .map(protoNode -> new Permission(protoNode.getNode()))
-                                                .collect(Collectors.toSet())),
-                                        role.getPriority(), role.getDisplayPrefix(), role.getDisplayName()
-                                )
-                        );
-                    }
-                },
-                error -> LOGGER.error("Failed to load roles", error)
-        ), ForkJoinPool.commonPool());
+        for (PermissionProto.RoleResponse role : result.getRolesList()) {
+            this.roleCache.put(
+                    role.getId(),
+                    new Role(
+                            role.getId(),
+                            Sets.newConcurrentHashSet(role.getPermissionsList().stream()
+                                    .filter(node -> node.getState() == PermissionProto.PermissionNode.PermissionState.ALLOW)
+                                    .map(protoNode -> new Permission(protoNode.getNode()))
+                                    .collect(Collectors.toSet())),
+                            role.getPriority(), role.getDisplayPrefix(), role.getDisplayName()
+                    )
+            );
+        }
     }
 
     public void loadUser(Player player) {
-        ListenableFuture<PermissionProto.PlayerRolesResponse> rolesResponseFuture = this.permissionService.getPlayerRoles(
+        PermissionProto.PlayerRolesResponse result = this.permissionService.getPlayerRoles(
                 PlayerProto.PlayerRequest.newBuilder().setPlayerId(player.getUuid().toString()).build()
         );
 
-        Futures.addCallback(rolesResponseFuture, FunctionalFutureCallback.create(
-                result -> {
-                    Set<String> roleIds = Sets.newConcurrentHashSet(result.getRoleIdsList());
-                    User user = new User(player.getUuid(), roleIds, this.determineActivePrefix(roleIds), this.determineActiveName(roleIds));
-                    this.userCache.put(player.getUuid(), user);
+        Set<String> roleIds = Sets.newConcurrentHashSet(result.getRoleIdsList());
+        User user = new User(player.getUuid(), roleIds, this.determineActivePrefix(roleIds), this.determineActiveName(roleIds));
+        this.userCache.put(player.getUuid(), user);
 
-                    Set<Permission> permissions = new HashSet<>();
-                    for (String roleId : roleIds) {
-                        Role role = this.roleCache.get(roleId);
-                        if (role == null) continue;
+        Set<Permission> permissions = new HashSet<>();
+        for (String roleId : roleIds) {
+            Role role = this.roleCache.get(roleId);
+            if (role == null) continue;
 
-                        permissions.addAll(role.getPermissions());
-                    }
-                    player.getAllPermissions().clear();
-                    player.getAllPermissions().addAll(permissions);
-                },
-                error -> {
-                    LOGGER.error("Failed to load user roles for " + player.getUuid(), error);
-                }
-        ), ForkJoinPool.commonPool());
+            permissions.addAll(role.getPermissions());
+        }
+        player.getAllPermissions().clear();
+        player.getAllPermissions().addAll(permissions);
     }
 
     public Map<String, Role> getRoleCache() {
