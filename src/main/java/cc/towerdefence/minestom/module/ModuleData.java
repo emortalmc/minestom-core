@@ -15,4 +15,6 @@ public @interface ModuleData {
 
     boolean productionOnly() default false;
 
+    Class<? extends Module>[] dependencies() default {};
+
 }

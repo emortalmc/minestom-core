@@ -2,6 +2,7 @@ package cc.towerdefence.minestom;
 
 import cc.towerdefence.minestom.module.Module;
 import cc.towerdefence.minestom.module.ModuleData;
+import cc.towerdefence.minestom.module.kubernetes.KubernetesModule;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
@@ -13,9 +14,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Function;
 
 public final class MinestomServer {
@@ -28,7 +29,7 @@ public final class MinestomServer {
     public static final int MAX_PLAYERS = System.getenv("MAX_PLAYERS") == null ? 100 : Integer.parseInt(System.getenv("MAX_PLAYERS"));
     public static final String SERVER_ID = DEV_ENVIRONMENT ? "local" : System.getenv("HOSTNAME");
 
-    private final Map<String, Module> modules;
+    private static Map<Class<? extends Module>, Module> MODULES;
 
     public MinestomServer(Builder builder) {
         MinecraftServer server = MinecraftServer.init();
@@ -40,10 +41,18 @@ public final class MinestomServer {
         EventNode<Event> modulesNode = EventNode.all("modules");
         MinecraftServer.getGlobalEventHandler().addChild(modulesNode);
 
-        Map<String, Module> modules = new TreeMap<>();
+        Map<Class<? extends Module>, Module> modules = new LinkedHashMap<>();
         for (Builder.LoadableModule loadableModule : builder.modules) {
             ModuleData moduleData = loadableModule.clazz().getDeclaredAnnotation(ModuleData.class);
             if (DEV_ENVIRONMENT && moduleData.productionOnly()) continue;
+
+            for (Class<? extends Module> moduleClazz : moduleData.dependencies()) {
+                if (!modules.containsKey(moduleClazz)) {
+                    LOGGER.error("Module {} requires module {} to be loaded first.", moduleData.name(), moduleClazz.getName());
+                    // todo failure handling?
+                    continue;
+                }
+            }
 
             EventNode<Event> eventNode = EventNode.all(moduleData.name());
             modulesNode.addChild(eventNode);
@@ -55,14 +64,14 @@ public final class MinestomServer {
             Duration loadDuration = Duration.between(loadStart, Instant.now());
 
 
-            if (loadResult) modules.put(moduleData.name(), module);
-            modules.put(moduleData.name(), module);
-
-            LOGGER.info("Loaded module {} in {}ms with status {} (required: {})", moduleData.name(), loadDuration.toMillis(), loadResult, moduleData.required());
+            if (loadResult) {
+                modules.put(module.getClass(), module);
+                LOGGER.info("Loaded module {} in {}ms with status {} (required: {})", moduleData.name(), loadDuration.toMillis(), loadResult, moduleData.required());
+            }
         }
-        this.modules = Collections.unmodifiableMap(modules);
+        MODULES = Collections.unmodifiableMap(modules);
 
-        if (!this.modules.containsKey("kubernetes")) {
+        if (!MODULES.containsKey(KubernetesModule.class)) {
             LOGGER.warn("""
                     Kubernetes is not enabled, this server will not be able to connect to Agones
                     Other features such as [player-tracking] will also be disabled
@@ -70,7 +79,7 @@ public final class MinestomServer {
         }
 
         server.start(builder.address, builder.port);
-        for (Module module : this.modules.values()) module.onReady();
+        for (Module module : MODULES.values()) module.onReady();
     }
 
     private void tryEnableVelocity() {
@@ -85,15 +94,19 @@ public final class MinestomServer {
         VelocityProxy.enable(forwardingSecret);
     }
 
-    public Map<String, Module> getModules() {
-        return this.modules;
+    public static Map<Class<? extends Module>, Module> getModules() {
+        return MODULES;
+    }
+
+    public static <T> T getModule(Class<T> clazz) {
+        return (T) MODULES.get(clazz);
     }
 
     public static final class Builder {
         private String address = getValue("minestom.address", DEFAULT_ADDRESS);
         private int port = Integer.parseInt(getValue("minestom.port", DEFAULT_PORT));
 
-        private Set<LoadableModule> modules = new HashSet<>();
+        private final Set<LoadableModule> modules = new HashSet<>();
 
         public Builder() {
             // we do this because env variables in dockerfiles break k8s env variables?
