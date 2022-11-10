@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,7 +28,7 @@ public final class MinestomServer {
     public static final int MAX_PLAYERS = System.getenv("MAX_PLAYERS") == null ? 100 : Integer.parseInt(System.getenv("MAX_PLAYERS"));
     public static final String SERVER_ID = DEV_ENVIRONMENT ? "local" : System.getenv("HOSTNAME");
 
-    private static Map<Class<? extends Module>, Module> MODULES;
+    private static final Map<Class<? extends Module>, Module> MODULES = new LinkedHashMap<>();
 
     public MinestomServer(Builder builder) {
         MinecraftServer server = MinecraftServer.init();
@@ -41,13 +40,12 @@ public final class MinestomServer {
         EventNode<Event> modulesNode = EventNode.all("modules");
         MinecraftServer.getGlobalEventHandler().addChild(modulesNode);
 
-        Map<Class<? extends Module>, Module> modules = new LinkedHashMap<>();
         for (Builder.LoadableModule loadableModule : builder.modules) {
             ModuleData moduleData = loadableModule.clazz().getDeclaredAnnotation(ModuleData.class);
             if (DEV_ENVIRONMENT && moduleData.productionOnly()) continue;
 
             for (Class<? extends Module> moduleClazz : moduleData.dependencies()) {
-                if (!modules.containsKey(moduleClazz)) {
+                if (!MODULES.containsKey(moduleClazz)) {
                     LOGGER.error("Module {} requires module {} to be loaded first.", moduleData.name(), moduleClazz.getName());
                     // todo failure handling?
                     continue;
@@ -65,11 +63,9 @@ public final class MinestomServer {
 
 
             if (loadResult) {
-                modules.put(module.getClass(), module);
                 LOGGER.info("Loaded module {} in {}ms with status {} (required: {})", moduleData.name(), loadDuration.toMillis(), loadResult, moduleData.required());
             }
         }
-        MODULES = Collections.unmodifiableMap(modules);
 
         if (!MODULES.containsKey(KubernetesModule.class)) {
             LOGGER.warn("""
