@@ -12,10 +12,10 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 public final class MinestomServer {
@@ -102,7 +102,7 @@ public final class MinestomServer {
         private String address = getValue("minestom.address", DEFAULT_ADDRESS);
         private int port = Integer.parseInt(getValue("minestom.port", DEFAULT_PORT));
 
-        private final Set<LoadableModule> modules = new HashSet<>();
+        private final List<LoadableModule> modules = new ArrayList<>();
 
         public Builder() {
             // we do this because env variables in dockerfiles break k8s env variables?
