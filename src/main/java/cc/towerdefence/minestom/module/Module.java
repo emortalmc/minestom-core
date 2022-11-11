@@ -5,10 +5,12 @@ import net.minestom.server.event.EventNode;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class Module {
+    protected final @NotNull ModuleManager moduleManager;
     protected final @NotNull EventNode<Event> eventNode;
 
-    protected Module(@NotNull EventNode<Event> eventNode) {
-        this.eventNode = eventNode;
+    protected Module(@NotNull ModuleEnvironment environment) {
+        this.moduleManager = environment.moduleManager();
+        this.eventNode = environment.eventNode();
     }
 
     public abstract boolean onLoad();

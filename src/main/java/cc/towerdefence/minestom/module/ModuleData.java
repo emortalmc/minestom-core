@@ -13,8 +13,6 @@ public @interface ModuleData {
     // If the module fails, and it is required, the server will not accept connections.
     boolean required();
 
-    boolean productionOnly() default false;
-
     Class<? extends Module>[] dependencies() default {};
 
 }

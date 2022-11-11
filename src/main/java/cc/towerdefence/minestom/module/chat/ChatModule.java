@@ -1,16 +1,14 @@
 package cc.towerdefence.minestom.module.chat;
 
-import cc.towerdefence.minestom.MinestomServer;
 import cc.towerdefence.minestom.module.Module;
 import cc.towerdefence.minestom.module.ModuleData;
+import cc.towerdefence.minestom.module.ModuleEnvironment;
 import cc.towerdefence.minestom.module.permissions.PermissionCache;
 import cc.towerdefence.minestom.module.permissions.PermissionModule;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.Event;
-import net.minestom.server.event.EventNode;
 import net.minestom.server.event.player.PlayerChatEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,13 +18,13 @@ import java.util.Optional;
 public class ChatModule extends Module {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
-    public ChatModule(@NotNull EventNode<Event> eventNode) {
-        super(eventNode);
+    public ChatModule(@NotNull ModuleEnvironment environment) {
+        super(environment);
     }
 
     @Override
     public boolean onLoad() {
-        PermissionModule permissionModule = MinestomServer.getModule(PermissionModule.class);
+        PermissionModule permissionModule = this.moduleManager.getModule(PermissionModule.class);
         PermissionCache permissionCache = permissionModule.getPermissionCache();
 
         this.eventNode.addListener(PlayerChatEvent.class, event -> {

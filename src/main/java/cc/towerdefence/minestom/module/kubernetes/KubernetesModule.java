@@ -2,10 +2,11 @@ package cc.towerdefence.minestom.module.kubernetes;
 
 import cc.towerdefence.api.agonessdk.AgonesUtils;
 import cc.towerdefence.api.agonessdk.IgnoredStreamObserver;
+import cc.towerdefence.minestom.Environment;
 import cc.towerdefence.minestom.MinestomServer;
 import cc.towerdefence.minestom.module.Module;
 import cc.towerdefence.minestom.module.ModuleData;
-import cc.towerdefence.minestom.module.core.PlayerTrackerManager;
+import cc.towerdefence.minestom.module.ModuleEnvironment;
 import cc.towerdefence.minestom.module.kubernetes.command.agones.AgonesCommand;
 import cc.towerdefence.minestom.module.kubernetes.command.currentserver.CurrentServerCommand;
 import dev.agones.sdk.AgonesSDKProto;
@@ -18,8 +19,6 @@ import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.util.Config;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.event.Event;
-import net.minestom.server.event.EventNode;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerLoginEvent;
 import org.jetbrains.annotations.NotNull;
@@ -29,12 +28,24 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-@ModuleData(name = "kubernetes", required = true, productionOnly = true)
+@ModuleData(name = "kubernetes", required = true)
 public class KubernetesModule extends Module {
-    private static final boolean ENABLED = !MinestomServer.DEV_ENVIRONMENT || System.getenv("ENABLE_K8S_DEV") != null;
-    private static final int AGONES_GRPC_PORT = MinestomServer.DEV_ENVIRONMENT ? 9357 : Integer.parseInt(System.getenv("AGONES_SDK_GRPC_PORT"));
-
     private static final Logger LOGGER = LoggerFactory.getLogger(KubernetesModule.class);
+
+    private static final boolean KUBERNETES_ENABLED = Environment.isProduction(); // Kubernetes support can only be enabled if run in-cluster
+
+    private static final boolean AGONES_SDK_ENABLED;
+    private static final String AGONES_ADDRESS = "localhost"; // SDK runs as a sidecar in production so address is always localhost
+    private static final int AGONES_GRPC_PORT;
+
+    private static final boolean PLAYER_TRACKER_ENABLED = Environment.isProduction() || System.getenv("PLAYER_TRACKER_SVC_PORT") != null;
+
+    static {
+        String agonesPortString = System.getenv("AGONES_SDK_GRPC_PORT");
+        AGONES_SDK_ENABLED = Environment.isProduction() || agonesPortString != null;
+
+        AGONES_GRPC_PORT = AGONES_SDK_ENABLED ? Integer.parseInt(agonesPortString) : Integer.MIN_VALUE;
+    }
 
     private final AgonesSDKProto.KeyValue[] additionalLabels;
 
@@ -45,62 +56,68 @@ public class KubernetesModule extends Module {
     private dev.agones.sdk.beta.SDKGrpc.SDKFutureStub betaSdk;
     private dev.agones.sdk.alpha.SDKGrpc.SDKFutureStub alphaSdk;
 
-    public KubernetesModule(EventNode<Event> eventNode, AgonesSDKProto.KeyValue... additionalLabels) {
-        super(eventNode);
+    public KubernetesModule(ModuleEnvironment environment, AgonesSDKProto.KeyValue... additionalLabels) {
+        super(environment);
 
         this.additionalLabels = additionalLabels;
     }
 
-    public KubernetesModule(EventNode<Event> eventNode) {
-        this(eventNode, new AgonesSDKProto.KeyValue[]{});
-    }
-
     @Override
     public boolean onLoad() {
-        try {
-            this.apiClient = Config.defaultClient();
-            Configuration.setDefaultApiClient(this.apiClient);
+        // kubernetes
+        if (KUBERNETES_ENABLED) {
+            try {
+                this.apiClient = Config.defaultClient();
+                Configuration.setDefaultApiClient(this.apiClient);
 
-            this.protoClient = new ProtoClient(this.apiClient);
+                this.protoClient = new ProtoClient(this.apiClient);
+            } catch (IOException e) {
+                LOGGER.error("Failed to initialise Kubernetes client", e);
+                return false;
+            }
+        }
 
-            ManagedChannel agonesChannel = ManagedChannelBuilder.forAddress("localhost", AGONES_GRPC_PORT).usePlaintext().build();
+        // agones
+        if (AGONES_SDK_ENABLED) {
+            ManagedChannel agonesChannel = ManagedChannelBuilder.forAddress(AGONES_ADDRESS, AGONES_GRPC_PORT).usePlaintext().build();
             this.sdk = SDKGrpc.newStub(agonesChannel);
             this.betaSdk = dev.agones.sdk.beta.SDKGrpc.newFutureStub(agonesChannel);
             this.alphaSdk = dev.agones.sdk.alpha.SDKGrpc.newFutureStub(agonesChannel);
-
-            if (!MinestomServer.DEV_ENVIRONMENT) {
-                PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(this.eventNode);
-                MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
-                MinecraftServer.getCommandManager().register(new AgonesCommand(this));
-            }
+            MinecraftServer.getCommandManager().register(new AgonesCommand(this));
 
             for (AgonesSDKProto.KeyValue label : this.additionalLabels) {
                 this.sdk.setLabel(label, new IgnoredStreamObserver<>());
                 LOGGER.info("Set Agones label {} to {}", label.getKey(), label.getValue());
             }
-        } catch (IOException e) {
-            LOGGER.error("Failed to initialise Kubernetes client", e);
-            return false;
+        }
+
+
+        if (PLAYER_TRACKER_ENABLED) {
+            PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(this.eventNode);
+            MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
         }
         return true;
     }
 
     @Override
     public void onUnload() {
-        AgonesUtils.shutdownHealthTask();
+        if (AGONES_SDK_ENABLED)
+            AgonesUtils.shutdownHealthTask();
     }
 
     @Override
     public void onReady() {
-        LOGGER.info("Marking server as READY for Agones with a capacity of {} players", MinestomServer.MAX_PLAYERS);
+        if (AGONES_SDK_ENABLED) {
+            LOGGER.info("Marking server as READY for Agones with a capacity of {} players", MinestomServer.MAX_PLAYERS);
 
-        AgonesUtils.startHealthTask(this.sdk, 10, TimeUnit.SECONDS);
-        this.sdk.ready(AgonesSDKProto.Empty.getDefaultInstance(), new IgnoredStreamObserver<>());
+            AgonesUtils.startHealthTask(this.sdk, 10, TimeUnit.SECONDS);
+            this.sdk.ready(AgonesSDKProto.Empty.getDefaultInstance(), new IgnoredStreamObserver<>());
 
-        this.eventNode.addListener(PlayerLoginEvent.class, this::onConnect)
-                .addListener(PlayerDisconnectEvent.class, this::onDisconnect);
+            this.eventNode.addListener(PlayerLoginEvent.class, this::onConnect)
+                    .addListener(PlayerDisconnectEvent.class, this::onDisconnect);
 
-        this.alphaSdk.setPlayerCapacity(AlphaAgonesSDKProto.Count.newBuilder().setCount(MinestomServer.MAX_PLAYERS).build());
+            this.alphaSdk.setPlayerCapacity(AlphaAgonesSDKProto.Count.newBuilder().setCount(MinestomServer.MAX_PLAYERS).build());
+        }
     }
 
     private void onConnect(PlayerLoginEvent event) {
@@ -125,10 +142,6 @@ public class KubernetesModule extends Module {
 
     public @NotNull dev.agones.sdk.alpha.SDKGrpc.SDKFutureStub getAlphaSdk() {
         return alphaSdk;
-    }
-
-    public static boolean isEnabled() {
-        return ENABLED;
     }
 
     public ApiClient getApiClient() {

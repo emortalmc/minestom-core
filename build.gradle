@@ -3,6 +3,7 @@ plugins {
     id("maven-publish")
 
     id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("io.freefair.lombok") version "6.5.1"
 }
 
 group "cc.towerdefence.minestom"

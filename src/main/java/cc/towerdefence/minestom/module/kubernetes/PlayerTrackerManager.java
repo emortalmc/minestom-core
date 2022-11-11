@@ -1,10 +1,10 @@
-package cc.towerdefence.minestom.module.core;
+package cc.towerdefence.minestom.module.kubernetes;
 
 import cc.towerdefence.api.agonessdk.EmptyStreamObserver;
 import cc.towerdefence.api.model.common.PlayerProto;
 import cc.towerdefence.api.service.PlayerTrackerGrpc;
 import cc.towerdefence.api.service.PlayerTrackerProto;
-import cc.towerdefence.minestom.MinestomServer;
+import cc.towerdefence.minestom.Environment;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -21,10 +21,20 @@ import java.util.function.Consumer;
 public class PlayerTrackerManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(PlayerTrackerManager.class);
 
+    private static final String ADDRESS;
+    private static final int PORT;
+
+    static {
+        String portString = System.getenv("PLAYER_TRACKER_SVC_PORT");
+
+        ADDRESS = Environment.isProduction() ? "player-tracker.towerdefence.svc" : "localhost";
+        PORT = portString == null ? 9090 : Integer.parseInt(portString);
+    }
+
     private final PlayerTrackerGrpc.PlayerTrackerStub stub;
 
     public PlayerTrackerManager(EventNode<Event> eventNode) {
-        ManagedChannel channel = ManagedChannelBuilder.forAddress("player-tracker.towerdefence.svc", 9090)
+        ManagedChannel channel = ManagedChannelBuilder.forAddress(ADDRESS, PORT)
                 .defaultLoadBalancingPolicy("round_robin")
                 .usePlaintext()
                 .build();
@@ -62,7 +72,7 @@ public class PlayerTrackerManager {
         this.stub.serverPlayerLogin(PlayerTrackerProto.PlayerLoginRequest.newBuilder()
                         .setPlayerId(player.getUuid().toString())
                         .setPlayerName(player.getUsername())
-                        .setServerId(MinestomServer.SERVER_ID).build()
+                        .setServerId(Environment.getHostname()).build()
                 , new EmptyStreamObserver<>());
     }
 }

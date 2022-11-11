@@ -59,6 +59,9 @@ public class PerformanceCommand extends Command {
         double tickMs = monitor.getTickTime();
         double tps = Math.min(MinecraftServer.TICK_PER_SECOND, Math.floor(1000 / tickMs));
 
+        float lerpDiv = (float) (tps / MinecraftServer.TICK_PER_SECOND);
+        TextColor tpsColor = TextColor.lerp(lerpDiv, NamedTextColor.RED, NamedTextColor.GREEN);
+
         sender.sendMessage(
                 Component.text()
                         .append(Component.newline())
@@ -70,7 +73,7 @@ public class PerformanceCommand extends Command {
                         .append(this.createGcComponent())
                         .append(Component.newline())
 
-                        .append(Component.text("\nTPS: ", NamedTextColor.GRAY))
+                        .append(Component.text("\nTPS: ", tpsColor))
                         .append(Component.text(tps, NamedTextColor.GREEN))
 
                         .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
