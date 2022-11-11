@@ -17,9 +17,12 @@ public class ModuleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(ModuleManager.class);
 
     private final @NotNull Map<Class<? extends Module>, Module> modules = new ConcurrentHashMap<>();
-    private final @NotNull EventNode<Event> modulesNode = EventNode.all("modules");
 
-    public ModuleManager(MinestomServer.Builder builder) {
+    private final @NotNull EventNode<Event> modulesNode;
+
+    public ModuleManager(MinestomServer.Builder builder, @NotNull EventNode<Event> modulesNode) {
+        this.modulesNode = modulesNode;
+
         for (MinestomServer.Builder.LoadableModule loadableModule : builder.getModules()) {
             ModuleData moduleData = loadableModule.clazz().getDeclaredAnnotation(ModuleData.class);
 

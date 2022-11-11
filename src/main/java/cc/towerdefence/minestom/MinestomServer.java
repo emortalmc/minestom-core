@@ -34,7 +34,7 @@ public final class MinestomServer {
         EventNode<Event> modulesNode = EventNode.all("modules");
         MinecraftServer.getGlobalEventHandler().addChild(modulesNode);
 
-        ModuleManager moduleManager = new ModuleManager(builder);
+        ModuleManager moduleManager = new ModuleManager(builder, modulesNode);
 
         server.start(builder.address, builder.port);
         moduleManager.onReady();
