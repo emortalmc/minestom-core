@@ -1,6 +1,6 @@
 package cc.towerdefence.minestom.module.permissions;
 
-import cc.towerdefence.api.model.common.PlayerProto;
+import cc.towerdefence.api.model.PlayerProto;
 import cc.towerdefence.api.service.PermissionProto;
 import cc.towerdefence.api.service.PermissionServiceGrpc;
 import com.google.common.collect.Sets;

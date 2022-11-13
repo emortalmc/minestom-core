@@ -1,7 +1,7 @@
 package cc.towerdefence.minestom.module.kubernetes;
 
 import cc.towerdefence.api.agonessdk.EmptyStreamObserver;
-import cc.towerdefence.api.model.common.PlayerProto;
+import cc.towerdefence.api.model.PlayerProto;
 import cc.towerdefence.api.service.PlayerTrackerGrpc;
 import cc.towerdefence.api.service.PlayerTrackerProto;
 import cc.towerdefence.minestom.Environment;
