@@ -73,8 +73,8 @@ public class PerformanceCommand extends Command {
                         .append(this.createGcComponent())
                         .append(Component.newline())
 
-                        .append(Component.text("\nTPS: ", tpsColor))
-                        .append(Component.text(tps, NamedTextColor.GREEN))
+                        .append(Component.text("\nTPS: ", NamedTextColor.GRAY))
+                        .append(Component.text(tps, tpsColor))
 
                         .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
 

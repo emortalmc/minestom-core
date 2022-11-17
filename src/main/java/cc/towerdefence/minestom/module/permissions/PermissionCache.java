@@ -1,6 +1,5 @@
 package cc.towerdefence.minestom.module.permissions;
 
-import cc.towerdefence.api.model.PlayerProto;
 import cc.towerdefence.api.service.PermissionProto;
 import cc.towerdefence.api.service.PermissionServiceGrpc;
 import com.google.common.collect.Sets;
@@ -65,7 +64,7 @@ public class PermissionCache {
 
     public void loadUser(Player player) {
         PermissionProto.PlayerRolesResponse result = this.permissionService.getPlayerRoles(
-                PlayerProto.PlayerRequest.newBuilder().setPlayerId(player.getUuid().toString()).build()
+                PermissionProto.PlayerRequest.newBuilder().setPlayerId(player.getUuid().toString()).build()
         );
 
         Set<String> roleIds = Sets.newConcurrentHashSet(result.getRoleIdsList());

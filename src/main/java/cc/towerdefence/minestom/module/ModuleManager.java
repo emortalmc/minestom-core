@@ -26,13 +26,16 @@ public class ModuleManager {
         for (MinestomServer.Builder.LoadableModule loadableModule : builder.getModules()) {
             ModuleData moduleData = loadableModule.clazz().getDeclaredAnnotation(ModuleData.class);
 
+            boolean missingDependency = false;
             for (Class<? extends Module> moduleClazz : moduleData.dependencies()) {
                 if (!this.modules.containsKey(moduleClazz)) {
                     LOGGER.error("Module {} requires module {} to be loaded first.", moduleData.name(), moduleClazz.getName());
                     // todo failure handling?
-                    continue;
+                    missingDependency = true;
+                    break;
                 }
             }
+            if (missingDependency) continue;
 
             EventNode<Event> eventNode = EventNode.all(moduleData.name());
             this.modulesNode.addChild(eventNode);
