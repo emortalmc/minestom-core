@@ -46,6 +46,7 @@ public class ChatModule extends Module {
                 PermissionCache.User user = optionalUser.get();
                 return MINI_MESSAGE.deserialize(CHAT_FORMAT,
                         Placeholder.component("prefix", user.getDisplayPrefix()),
+                        Placeholder.unparsed("username", player.getUsername()),
                         Placeholder.parsed("display_name", user.getDisplayName()),
                         Placeholder.unparsed("message", event.getMessage())
                 );
