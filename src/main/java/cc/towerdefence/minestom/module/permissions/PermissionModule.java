@@ -61,7 +61,7 @@ public class PermissionModule extends Module {
     }
 
     public PermissionCache getPermissionCache() {
-        return permissionCache;
+        return this.permissionCache;
     }
 
     private static class AllPermission extends Permission {

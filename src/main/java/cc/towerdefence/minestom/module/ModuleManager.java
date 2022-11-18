@@ -66,7 +66,7 @@ public class ModuleManager {
             module.onReady();
             Duration readyDuration = Duration.between(readyStart, Instant.now());
 
-            LOGGER.info("Fired onReady for module {} in {}ms", module.getClass().getName(), readyDuration.toMillis());
+            LOGGER.info("Fired onReady for module {} in {}ms", module.getClass().getSimpleName(), readyDuration.toMillis());
         }
     }
 

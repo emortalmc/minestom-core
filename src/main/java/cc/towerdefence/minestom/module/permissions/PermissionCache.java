@@ -62,7 +62,7 @@ public class PermissionCache {
         }
     }
 
-    public void loadUser(Player player) {
+    public void loadUser(@NotNull Player player) {
         PermissionProto.PlayerRolesResponse result = this.permissionService.getPlayerRoles(
                 PermissionProto.PlayerRequest.newBuilder().setPlayerId(player.getUuid().toString()).build()
         );

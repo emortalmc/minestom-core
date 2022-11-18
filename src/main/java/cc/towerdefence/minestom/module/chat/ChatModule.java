@@ -11,11 +11,14 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerChatEvent;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
-@ModuleData(name = "chat", required = false, dependencies = PermissionModule.class)
+@ModuleData(name = "chat", required = false)
 public class ChatModule extends Module {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChatModule.class);
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     public ChatModule(@NotNull ModuleEnvironment environment) {
@@ -26,6 +29,11 @@ public class ChatModule extends Module {
     public boolean onLoad() {
         PermissionModule permissionModule = this.moduleManager.getModule(PermissionModule.class);
         PermissionCache permissionCache = permissionModule.getPermissionCache();
+
+        if (permissionCache == null) {
+            LOGGER.warn("Permission module is not loaded, chat will not be formatted.");
+            return true;
+        }
 
         this.eventNode.addListener(PlayerChatEvent.class, event -> {
             Player player = event.getPlayer();
