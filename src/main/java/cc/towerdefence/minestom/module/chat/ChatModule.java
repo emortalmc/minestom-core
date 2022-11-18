@@ -21,6 +21,8 @@ public class ChatModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatModule.class);
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
+    private static final String CHAT_FORMAT = "<prefix><reset> <display_name><reset>: <message>";
+
     public ChatModule(@NotNull ModuleEnvironment environment) {
         super(environment);
     }
@@ -42,11 +44,11 @@ public class ChatModule extends Module {
                 if (optionalUser.isEmpty()) return Component.text(event.getMessage());
 
                 PermissionCache.User user = optionalUser.get();
-                return user.getDisplayPrefix()
-                        .append(Component.text(" "))
-                        .append(MINI_MESSAGE.deserialize(user.getDisplayName(), Placeholder.unparsed("username", player.getUsername())))
-                        .append(Component.text(": "))
-                        .append(Component.text(event.getMessage()));
+                return MINI_MESSAGE.deserialize(CHAT_FORMAT,
+                        Placeholder.component("prefix", user.getDisplayPrefix()),
+                        Placeholder.parsed("display_name", user.getDisplayName()),
+                        Placeholder.unparsed("message", event.getMessage())
+                );
             });
         });
         return true;
