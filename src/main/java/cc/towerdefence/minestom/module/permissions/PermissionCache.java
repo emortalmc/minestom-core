@@ -4,6 +4,7 @@ import cc.towerdefence.api.service.PermissionProto;
 import cc.towerdefence.api.service.PermissionServiceGrpc;
 import com.google.common.collect.Sets;
 import com.google.protobuf.Empty;
+import lombok.SneakyThrows;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -30,12 +31,13 @@ import java.util.stream.Collectors;
 
 public class PermissionCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionCache.class);
+
     private final Map<String, Role> roleCache = Collections.synchronizedMap(new LinkedHashMap<>());
     private final Map<UUID, User> userCache = new ConcurrentHashMap<>();
 
-    private final PermissionServiceGrpc.PermissionServiceBlockingStub permissionService;
+    private final PermissionServiceGrpc.PermissionServiceFutureStub permissionService;
 
-    public PermissionCache(PermissionServiceGrpc.PermissionServiceBlockingStub permissionService, EventNode<Event> eventNode) {
+    public PermissionCache(PermissionServiceGrpc.PermissionServiceFutureStub permissionService, EventNode<Event> eventNode) {
         this.permissionService = permissionService;
 
         eventNode.addListener(PlayerDisconnectEvent.class, this::onDisconnect)
@@ -44,8 +46,9 @@ public class PermissionCache {
         this.loadRoles();
     }
 
+    @SneakyThrows
     private void loadRoles() {
-        PermissionProto.RolesResponse result = this.permissionService.getRoles(Empty.getDefaultInstance());
+        PermissionProto.RolesResponse result = this.permissionService.getRoles(Empty.getDefaultInstance()).get();
 
         for (PermissionProto.RoleResponse role : result.getRolesList()) {
             this.roleCache.put(
@@ -62,10 +65,11 @@ public class PermissionCache {
         }
     }
 
+    @SneakyThrows
     public void loadUser(@NotNull Player player) {
         PermissionProto.PlayerRolesResponse result = this.permissionService.getPlayerRoles(
                 PermissionProto.PlayerRequest.newBuilder().setPlayerId(player.getUuid().toString()).build()
-        );
+        ).get();
 
         Set<String> roleIds = Sets.newConcurrentHashSet(result.getRoleIdsList());
         User user = new User(player.getUuid(), roleIds, this.determineActivePrefix(roleIds), this.determineActiveName(roleIds));

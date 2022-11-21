@@ -1,10 +1,8 @@
 package cc.towerdefence.minestom.module.kubernetes.command.currentserver;
 
 import cc.towerdefence.minestom.module.kubernetes.PlayerTrackerManager;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.Tag;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
 
@@ -23,10 +21,10 @@ public class CurrentServerCommand extends Command {
         this.setDefaultExecutor((sender, context) -> {
             Player player = (Player) sender;
             this.playerTrackerManager.retrievePlayerServer(player.getUuid(), onlineServer -> {
-                sender.sendMessage(MINI_MESSAGE.deserialize(MESSAGE, TagResolver.builder()
-                        .tag("server_id", Tag.inserting(Component.text(onlineServer.getServerId())))
-                        .tag("proxy_id", Tag.inserting(Component.text(onlineServer.getProxyId())))
-                        .build()));
+                sender.sendMessage(MINI_MESSAGE.deserialize(MESSAGE,
+                        Placeholder.unparsed("server_id", onlineServer.getServerId()),
+                        Placeholder.unparsed("proxy_id", onlineServer.getProxyId()))
+                );
             });
         });
     }

@@ -1,6 +1,7 @@
 package cc.towerdefence.minestom.module.permissions;
 
 import cc.towerdefence.api.service.PermissionServiceGrpc;
+import cc.towerdefence.api.utils.GrpcStubCollection;
 import cc.towerdefence.minestom.Environment;
 import cc.towerdefence.minestom.module.Module;
 import cc.towerdefence.minestom.module.ModuleData;
@@ -44,11 +45,8 @@ public class PermissionModule extends Module {
             return true;
         }
 
-        ManagedChannel channel = ManagedChannelBuilder.forAddress(ADDRESS, PORT)
-                .defaultLoadBalancingPolicy("round_robin")
-                .usePlaintext()
-                .build();
-        PermissionServiceGrpc.PermissionServiceBlockingStub permissionService = PermissionServiceGrpc.newBlockingStub(channel);
+        PermissionServiceGrpc.PermissionServiceFutureStub permissionService =
+                GrpcStubCollection.getPermissionService().orElse(null);
 
         this.permissionCache = new PermissionCache(permissionService, this.eventNode);
 

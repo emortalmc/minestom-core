@@ -2,7 +2,7 @@ package cc.towerdefence.minestom.module.kubernetes;
 
 import cc.towerdefence.api.agonessdk.AgonesUtils;
 import cc.towerdefence.api.agonessdk.IgnoredStreamObserver;
-import cc.towerdefence.api.service.PlayerTrackerGrpc;
+import cc.towerdefence.api.utils.GrpcStubCollection;
 import cc.towerdefence.minestom.Environment;
 import cc.towerdefence.minestom.MinestomServer;
 import cc.towerdefence.minestom.module.Module;
@@ -39,29 +39,17 @@ public class KubernetesModule extends Module {
     private static final String AGONES_ADDRESS = "localhost"; // SDK runs as a sidecar in production so address is always localhost
     private static final int AGONES_GRPC_PORT;
 
-    private static final boolean PLAYER_TRACKER_ENABLED;
-    private static final String PLAYER_TRACKER_ADDRESS;
-    private static final int PLAYER_TRACKER_PORT;
-
     static {
         String agonesPortString = System.getenv("AGONES_SDK_GRPC_PORT");
         AGONES_SDK_ENABLED = Environment.isProduction() || agonesPortString != null;
 
         AGONES_GRPC_PORT = AGONES_SDK_ENABLED ? Integer.parseInt(agonesPortString) : Integer.MIN_VALUE;
-
-        String playerTrackerPortString = System.getenv("PLAYER_TRACKER_SVC_PORT");
-        PLAYER_TRACKER_ENABLED = Environment.isProduction() || playerTrackerPortString != null;
-
-        PLAYER_TRACKER_ADDRESS = Environment.isProduction() ? "player-tracker.towerdefence.svc" : "localhost";
-        PLAYER_TRACKER_PORT = playerTrackerPortString == null ? 9090 : Integer.parseInt(playerTrackerPortString);
     }
 
     private final AgonesSDKProto.KeyValue[] additionalLabels;
 
     private ApiClient apiClient;
     private ProtoClient protoClient;
-
-    private PlayerTrackerGrpc.PlayerTrackerFutureStub playerTracker;
 
     private SDKGrpc.SDKStub sdk;
     private dev.agones.sdk.beta.SDKGrpc.SDKFutureStub betaSdk;
@@ -89,17 +77,10 @@ public class KubernetesModule extends Module {
         }
 
         // player tracker
-        if (PLAYER_TRACKER_ENABLED) {
-            ManagedChannel channel = ManagedChannelBuilder.forAddress(PLAYER_TRACKER_ADDRESS, PLAYER_TRACKER_PORT)
-                    .defaultLoadBalancingPolicy("round_robin")
-                    .usePlaintext()
-                    .build();
-
-            this.playerTracker = PlayerTrackerGrpc.newFutureStub(channel);
-
-            PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(this.eventNode, this.playerTracker);
+        GrpcStubCollection.getPlayerTrackerService().ifPresent(playerTracker -> {
+            PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(this.eventNode, playerTracker);
             MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
-        }
+        });
 
         // agones
         if (AGONES_SDK_ENABLED) {
@@ -156,10 +137,6 @@ public class KubernetesModule extends Module {
 
     public ProtoClient getProtoClient() {
         return this.protoClient;
-    }
-
-    public PlayerTrackerGrpc.PlayerTrackerFutureStub getPlayerTracker() {
-        return this.playerTracker;
     }
 
     public @NotNull SDKGrpc.SDKStub getSdk() {
