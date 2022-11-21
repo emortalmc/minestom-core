@@ -6,8 +6,6 @@ import cc.towerdefence.minestom.Environment;
 import cc.towerdefence.minestom.module.Module;
 import cc.towerdefence.minestom.module.ModuleData;
 import cc.towerdefence.minestom.module.ModuleEnvironment;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.permission.Permission;
 import org.jetbrains.annotations.NotNull;
@@ -19,15 +17,10 @@ public class PermissionModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionModule.class);
 
     private static final boolean ENABLED;
-    private static final String ADDRESS;
-    private static final int PORT;
 
     static {
         String portString = System.getenv("PERMISSION_SVC_PORT");
         ENABLED = Environment.isProduction() || portString != null;
-
-        ADDRESS = Environment.isProduction() ? "permission.towerdefence.svc" : "localhost";
-        PORT = portString == null ? 9090 : Integer.parseInt(portString);
     }
 
     private PermissionCache permissionCache;

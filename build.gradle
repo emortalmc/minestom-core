@@ -19,10 +19,10 @@ repositories {
 
 dependencies {
     api("cc.towerdefence.api:agones-sdk:1.0.3")
-    api("cc.towerdefence.api:grpc-sdk:202872f")
+    api("cc.towerdefence.api:grpc-sdk:97e2573")
     api("io.kubernetes:client-java:16.0.2")
 
-    api("com.github.Minestom:Minestom:1a013728fd")
+    api("com.github.Minestom.Minestom:Minestom:1a013728fd")
     implementation("net.kyori:adventure-text-minimessage:4.11.0")
 //    api("net.minestom.server:Minestom:1.0") // local
 
