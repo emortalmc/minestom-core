@@ -10,6 +10,7 @@ import cc.towerdefence.minestom.module.ModuleData;
 import cc.towerdefence.minestom.module.ModuleEnvironment;
 import cc.towerdefence.minestom.module.kubernetes.command.agones.AgonesCommand;
 import cc.towerdefence.minestom.module.kubernetes.command.currentserver.CurrentServerCommand;
+import cc.towerdefence.minestom.module.kubernetes.rabbitmq.RabbitMqEventListener;
 import dev.agones.sdk.AgonesSDKProto;
 import dev.agones.sdk.SDKGrpc;
 import dev.agones.sdk.alpha.AlphaAgonesSDKProto;
@@ -78,9 +79,10 @@ public class KubernetesModule extends Module {
 
         // player tracker
         GrpcStubCollection.getPlayerTrackerService().ifPresent(playerTracker -> {
-            PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(this.eventNode, playerTracker);
+            PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(playerTracker);
             MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
         });
+        new RabbitMqEventListener(this.eventNode);
 
         // agones
         if (AGONES_SDK_ENABLED) {

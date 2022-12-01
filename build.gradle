@@ -19,8 +19,9 @@ repositories {
 
 dependencies {
     api("cc.towerdefence.api:agones-sdk:1.0.3")
-    api("cc.towerdefence.api:grpc-sdk:97e2573")
+    api("cc.towerdefence.api:grpc-sdk:74a9904")
     api("io.kubernetes:client-java:16.0.2")
+    implementation("com.rabbitmq:amqp-client:5.16.0")
 
     api("com.github.Minestom.Minestom:Minestom:1a013728fd")
     implementation("net.kyori:adventure-text-minimessage:4.11.0")
