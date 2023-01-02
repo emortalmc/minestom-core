@@ -1,1 +1,2 @@
 # minestom-core
+Hi
