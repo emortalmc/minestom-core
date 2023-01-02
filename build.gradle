@@ -60,7 +60,7 @@ publishing {
 
     publications {
         maven(MavenPublication) {
-            groupId = "dev.emortal.minestom.core"
+            groupId = "dev.emortal.minestom"
             artifactId = "core"
 
             def commitHash = System.getenv("COMMIT_HASH_SHORT")
