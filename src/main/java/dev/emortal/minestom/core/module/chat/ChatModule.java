@@ -21,7 +21,7 @@ public class ChatModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatModule.class);
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
-    private static final String CHAT_FORMAT = "<prefix><reset> <display_name><reset>: <message>";
+    private static final String CHAT_FORMAT = "<click:suggest_command:'/message <username> '><prefix> <display_name></click>: <message>";
 
     public ChatModule(@NotNull ModuleEnvironment environment) {
         super(environment);
@@ -46,7 +46,7 @@ public class ChatModule extends Module {
                 PermissionCache.User user = optionalUser.get();
                 return MINI_MESSAGE.deserialize(CHAT_FORMAT,
                         Placeholder.component("prefix", user.getDisplayPrefix()),
-                        Placeholder.unparsed("username", player.getUsername()),
+                        Placeholder.parsed("username", player.getUsername()),
                         Placeholder.parsed("display_name", user.getDisplayName()),
                         Placeholder.unparsed("message", event.getMessage())
                 );
