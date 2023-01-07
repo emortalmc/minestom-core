@@ -17,10 +17,15 @@ public class PermissionModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionModule.class);
 
     private static final boolean ENABLED;
+    // Grants all permissions if the permission service is not available
+    private static final boolean GRANT_ALL_PERMISSIONS;
 
     static {
         String portString = System.getenv("PERMISSION_SVC_PORT");
         ENABLED = Environment.isProduction() || portString != null;
+
+        String grantAllString = System.getenv("GRANT_ALL_PERMISSIONS");
+        GRANT_ALL_PERMISSIONS = Boolean.parseBoolean(grantAllString);
     }
 
     private PermissionCache permissionCache;
@@ -32,9 +37,13 @@ public class PermissionModule extends Module {
     @Override
     public boolean onLoad() {
         if (!ENABLED) {
-            LOGGER.warn("Permission service is not enabled, all players will be granted all permissions.");
+            if (GRANT_ALL_PERMISSIONS) {
+                LOGGER.warn("Permission service is not available, granting all permissions");
+                this.eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new AllPermission()));
+            } else {
+                LOGGER.warn("Permission service is not available, denying all permissions");
+            }
 
-            this.eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new AllPermission()));
             return true;
         }
 
