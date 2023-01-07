@@ -25,6 +25,7 @@ public class RabbitMqEventListener {
 
     private static final String CONNECTIONS_EXCHANGE = "mc:connections";
 
+    private static final String HOST = System.getenv("RABBITMQ_HOST");
     private static final String USERNAME = System.getenv("RABBITMQ_USERNAME");
     private static final String PASSWORD = System.getenv("RABBITMQ_PASSWORD");
 
@@ -34,14 +35,14 @@ public class RabbitMqEventListener {
     private final Channel channel;
 
     public RabbitMqEventListener(EventNode<Event> eventNode) {
-        if (USERNAME == null || PASSWORD == null) {
+        if (HOST == null || USERNAME == null || PASSWORD == null) {
             LOGGER.warn("RabbitMQ username or password not set, skipping RabbitMQ event listener");
             this.connection = null;
             this.channel = null;
             return;
         }
         ConnectionFactory connectionFactory = new ConnectionFactory();
-        connectionFactory.setHost("rabbitmq-default");
+        connectionFactory.setHost(HOST);
         connectionFactory.setUsername(USERNAME);
         connectionFactory.setPassword(PASSWORD);
 
