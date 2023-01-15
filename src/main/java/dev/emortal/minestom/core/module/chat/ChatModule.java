@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
-@ModuleData(name = "chat", required = false)
+@ModuleData(name = "chat", softDependencies = {PermissionModule.class}, required = false)
 public class ChatModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatModule.class);
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();

@@ -13,6 +13,12 @@ public @interface ModuleData {
     // If the module fails, and it is required, the server will not accept connections.
     boolean required();
 
-    Class<? extends Module>[] dependencies() default {};
+    /**
+     * The soft dependencies of this module.
+     * There should be no hard dependencies as almost every module should half-function without the other modules.
+     *
+     * @return Classes of the soft dependencies
+     */
+    Class<? extends Module>[] softDependencies() default {};
 
 }
