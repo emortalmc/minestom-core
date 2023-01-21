@@ -3,6 +3,10 @@ package dev.emortal.minestom.core;
 import dev.emortal.minestom.core.module.Module;
 import dev.emortal.minestom.core.module.ModuleEnvironment;
 import dev.emortal.minestom.core.module.ModuleManager;
+import dev.emortal.minestom.core.module.chat.ChatModule;
+import dev.emortal.minestom.core.module.core.CoreModule;
+import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
+import dev.emortal.minestom.core.module.permissions.PermissionModule;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
@@ -74,6 +78,14 @@ public final class MinestomServer {
 
         public Builder port(int port) {
             this.port = port;
+            return this;
+        }
+
+        public Builder commonModules() {
+            this.module(KubernetesModule.class, KubernetesModule::new)
+                    .module(CoreModule.class, CoreModule::new)
+                    .module(PermissionModule.class, PermissionModule::new)
+                    .module(ChatModule.class, ChatModule::new);
             return this;
         }
 
