@@ -13,7 +13,7 @@ import dev.emortal.minestom.core.module.ModuleData;
 import dev.emortal.minestom.core.module.ModuleEnvironment;
 import dev.emortal.minestom.core.module.kubernetes.command.agones.AgonesCommand;
 import dev.emortal.minestom.core.module.kubernetes.command.currentserver.CurrentServerCommand;
-import dev.emortal.minestom.core.module.kubernetes.rabbitmq.RabbitMqEventListener;
+import dev.emortal.minestom.core.module.kubernetes.rabbitmq.RabbitMqCore;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.kubernetes.client.ProtoClient;
@@ -82,7 +82,7 @@ public class KubernetesModule extends Module {
             PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(playerTracker);
             MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
         });
-        new RabbitMqEventListener(this.eventNode);
+        new RabbitMqCore(this.eventNode);
 
         // agones
         if (AGONES_SDK_ENABLED) {

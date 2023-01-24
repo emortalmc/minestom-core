@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-public class RabbitMqEventListener {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqEventListener.class);
+public class RabbitMqCore {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqCore.class);
 
     private static final String CONNECTIONS_EXCHANGE = "mc:connections";
     private static final String BACKEND_ALL_EXCHANGE = "mc:gameserver:all";
@@ -42,7 +42,7 @@ public class RabbitMqEventListener {
     private final Channel channel;
     private final String selfQueueName;
 
-    public RabbitMqEventListener(EventNode<Event> eventNode) {
+    public RabbitMqCore(EventNode<Event> eventNode) {
         // For running in development, so we don't need a fully setup RabbitMQ server just to run everything.
         if (HOST == null || USERNAME == null || PASSWORD == null) {
             LOGGER.warn("RabbitMQ username or password not set, skipping RabbitMQ event listener");
@@ -96,11 +96,7 @@ public class RabbitMqEventListener {
 
     public void onPlayerLogin(PlayerLoginEvent event) {
         ConnectEventDataPackage dataPackage = new ConnectEventDataPackage(event.getPlayer().getUuid(), event.getPlayer().getUsername());
-        AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
-                .timestamp(new Date())
-                .type("connect")
-                .appId(Environment.getHostname())
-                .build();
+        final AMQP.BasicProperties basicProperties = createPropertiesWithType("connect");
 
         try {
             this.channel.basicPublish(CONNECTIONS_EXCHANGE, "", basicProperties, GSON.toJson(dataPackage).getBytes(StandardCharsets.UTF_8));
@@ -111,11 +107,7 @@ public class RabbitMqEventListener {
 
     public void onPlayerDisconnect(PlayerDisconnectEvent event) {
         DisconnectEventDataPackage dataPackage = new DisconnectEventDataPackage(event.getPlayer().getUuid());
-        AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
-                .timestamp(new Date())
-                .type("disconnect")
-                .appId(Environment.getHostname())
-                .build();
+        final AMQP.BasicProperties basicProperties = createPropertiesWithType("disconnect");
 
         try {
             this.channel.basicPublish(CONNECTIONS_EXCHANGE, "", basicProperties, GSON.toJson(dataPackage).getBytes(StandardCharsets.UTF_8));
@@ -126,6 +118,23 @@ public class RabbitMqEventListener {
 
     public <T extends AbstractMessage> void addListener(final Class<T> messageType, final Consumer<AbstractMessage> listener) {
         this.protoListeners.put(messageType, listener);
+    }
+
+    public void publish(final String channel, final AbstractMessage message) {
+        final AMQP.BasicProperties properties = createPropertiesWithType(channel);
+        try {
+            this.channel.basicPublish(BACKEND_ALL_EXCHANGE, "", properties, message.toByteArray());
+        } catch (final IOException exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+    private AMQP.BasicProperties createPropertiesWithType(final String type) {
+        return new AMQP.BasicProperties.Builder()
+                .timestamp(new Date())
+                .type(type)
+                .appId(Environment.getHostname())
+                .build();
     }
 
     public void shutdown() {
