@@ -43,6 +43,15 @@ public class RabbitMqEventListener {
     private final String selfQueueName;
 
     public RabbitMqEventListener(EventNode<Event> eventNode) {
+        // For running in development, so we don't need a fully setup RabbitMQ server just to run everything.
+        if (HOST == null || USERNAME == null || PASSWORD == null) {
+            LOGGER.warn("RabbitMQ username or password not set, skipping RabbitMQ event listener");
+            this.connection = null;
+            this.channel = null;
+            this.selfQueueName = null;
+            return;
+        }
+
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setHost(HOST);
         connectionFactory.setUsername(USERNAME);
