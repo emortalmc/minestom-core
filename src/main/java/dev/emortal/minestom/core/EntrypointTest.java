@@ -45,6 +45,11 @@ public final class EntrypointTest {
             sender.sendMessage("Hello world 2!");
         }, new ArgumentWord("required"), new ArgumentEntity("optional").onlyPlayers(true).setDefaultValue(EntityFinder::new));
 
+        Command testPermsCmd = new Command("testperms");
+        testPermsCmd.setCondition((sender, commandName) -> sender.hasPermission("command.testperms"));
+        testPermsCmd.setDefaultExecutor((sender, context) -> sender.sendMessage("works :)"));
+
         MinecraftServer.getCommandManager().register(command);
+        MinecraftServer.getCommandManager().register(testPermsCmd);
     }
 }
