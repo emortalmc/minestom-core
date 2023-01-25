@@ -13,7 +13,11 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.text.DecimalFormat;
+
 public class CurrentServerCommand extends Command {
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
+
     private final PlayerTrackerManager playerTrackerManager;
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
@@ -58,6 +62,11 @@ public class CurrentServerCommand extends Command {
     }
 
     private String formatPos(@NotNull Pos pos) {
-        return String.format("x: %s, y: %s, z: %s, yaw: %s, pitch: %s", pos.x(), pos.y(), pos.z(), pos.yaw(), pos.pitch());
+        return String.format(
+                "x: %s, y: %s, z: %s, yaw: %s, pitch: %s",
+                DECIMAL_FORMAT.format(pos.x()), DECIMAL_FORMAT.format(pos.y()),
+                DECIMAL_FORMAT.format(pos.z()), DECIMAL_FORMAT.format(pos.yaw()),
+                DECIMAL_FORMAT.format(pos.pitch())
+        );
     }
 }
