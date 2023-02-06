@@ -1,29 +1,24 @@
 package dev.emortal.minestom.core.module.kubernetes.rabbitmq;
 
-import com.google.protobuf.AbstractMessage;
-import dev.emortal.api.utils.parser.ProtoParserRegistry;
-import dev.emortal.minestom.core.Environment;
-import dev.emortal.minestom.core.module.kubernetes.rabbitmq.types.ConnectEventDataPackage;
-import dev.emortal.minestom.core.module.kubernetes.rabbitmq.types.DisconnectEventDataPackage;
 import com.google.gson.Gson;
+import com.google.protobuf.AbstractMessage;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import dev.emortal.api.utils.parser.ProtoParserRegistry;
+import dev.emortal.minestom.core.Environment;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
-import net.minestom.server.event.player.PlayerDisconnectEvent;
-import net.minestom.server.event.player.PlayerLoginEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class RabbitMqCore {
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqCore.class);
@@ -88,32 +83,7 @@ public class RabbitMqCore {
         }
         this.selfQueueName = selfQueueName;
 
-        eventNode.addListener(PlayerLoginEvent.class, this::onPlayerLogin)
-                .addListener(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
-
         MinecraftServer.getSchedulerManager().buildShutdownTask(this::shutdown);
-    }
-
-    public void onPlayerLogin(PlayerLoginEvent event) {
-        ConnectEventDataPackage dataPackage = new ConnectEventDataPackage(event.getPlayer().getUuid(), event.getPlayer().getUsername());
-        final AMQP.BasicProperties basicProperties = createPropertiesWithType("connect");
-
-        try {
-            this.channel.basicPublish(CONNECTIONS_EXCHANGE, "", basicProperties, GSON.toJson(dataPackage).getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void onPlayerDisconnect(PlayerDisconnectEvent event) {
-        DisconnectEventDataPackage dataPackage = new DisconnectEventDataPackage(event.getPlayer().getUuid());
-        final AMQP.BasicProperties basicProperties = createPropertiesWithType("disconnect");
-
-        try {
-            this.channel.basicPublish(CONNECTIONS_EXCHANGE, "", basicProperties, GSON.toJson(dataPackage).getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public <T extends AbstractMessage> void addListener(final Class<T> messageType, final Consumer<AbstractMessage> listener) {

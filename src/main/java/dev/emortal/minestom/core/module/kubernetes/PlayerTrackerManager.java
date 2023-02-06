@@ -1,9 +1,9 @@
 package dev.emortal.minestom.core.module.kubernetes;
 
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import dev.emortal.api.service.PlayerTrackerGrpc;
-import dev.emortal.api.service.PlayerTrackerProto;
+import dev.emortal.api.grpc.playertracker.PlayerTrackerGrpc;
+import dev.emortal.api.grpc.playertracker.PlayerTrackerProto;
+import dev.emortal.api.model.playertracker.PlayerLocation;
 import dev.emortal.api.utils.callback.FunctionalFutureCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,8 +21,8 @@ public class PlayerTrackerManager {
         this.stub = stub;
     }
 
-    public void retrievePlayerServer(UUID uuid, Consumer<PlayerTrackerProto.OnlineServer> responseConsumer) {
-        ListenableFuture<PlayerTrackerProto.GetPlayerServerResponse> serverResponseFuture = this.stub.getPlayerServer(PlayerTrackerProto.PlayerRequest.newBuilder()
+    public void retrievePlayerServer(UUID uuid, Consumer<PlayerLocation> responseConsumer) {
+        var serverResponseFuture = this.stub.getPlayerServer(PlayerTrackerProto.GetPlayerServerRequest.newBuilder()
                 .setPlayerId(uuid.toString())
                 .build());
 

@@ -1,9 +1,10 @@
 package dev.emortal.minestom.core.module.permissions;
 
 import com.google.common.collect.Sets;
-import com.google.protobuf.Empty;
-import dev.emortal.api.service.PermissionProto;
-import dev.emortal.api.service.PermissionServiceGrpc;
+import dev.emortal.api.grpc.permission.PermissionProto;
+import dev.emortal.api.grpc.permission.PermissionServiceGrpc;
+import dev.emortal.api.model.permission.PermissionNode;
+import dev.emortal.api.model.permission.Role;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -17,7 +18,14 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -25,7 +33,7 @@ import java.util.stream.Collectors;
 public class PermissionCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionCache.class);
 
-    private final Map<String, Role> roleCache = Collections.synchronizedMap(new LinkedHashMap<>());
+    private final Map<String, CachedRole> roleCache = Collections.synchronizedMap(new LinkedHashMap<>());
     private final Map<UUID, User> userCache = new ConcurrentHashMap<>();
 
     private final PermissionServiceGrpc.PermissionServiceFutureStub permissionService;
@@ -41,17 +49,17 @@ public class PermissionCache {
 
     private void loadRoles() {
         try {
-            PermissionProto.RolesResponse result = this.permissionService.getRoles(Empty.getDefaultInstance()).get();
+            PermissionProto.GetAllRolesResponse response = this.permissionService.getAllRoles(PermissionProto.GetAllRolesRequest.getDefaultInstance()).get();
 
-            for (PermissionProto.RoleResponse role : result.getRolesList()) {
+            for (Role role : response.getRolesList()) {
                 this.roleCache.put(
                         role.getId(),
-                        new Role(
+                        new CachedRole(
                                 role.getId(),
-                                Sets.newConcurrentHashSet(role.getPermissionsList().stream()
-                                        .filter(node -> node.getState() == PermissionProto.PermissionNode.PermissionState.ALLOW)
+                                role.getPermissionsList().stream()
+                                        .filter(node -> node.getState() == PermissionNode.PermissionState.ALLOW)
                                         .map(protoNode -> new Permission(protoNode.getNode()))
-                                        .collect(Collectors.toSet())),
+                                        .collect(Collectors.toCollection(Sets::newConcurrentHashSet)),
                                 role.getPriority(), role.getDisplayPrefix(), role.getDisplayName()
                         )
                 );
@@ -61,10 +69,15 @@ public class PermissionCache {
         }
     }
 
+    /**
+     * This method is blocking
+     *
+     * @param player the player to load
+     */
     public void loadUser(@NotNull Player player) {
         try {
             PermissionProto.PlayerRolesResponse result = this.permissionService.getPlayerRoles(
-                    PermissionProto.PlayerRequest.newBuilder().setPlayerId(player.getUuid().toString()).build()
+                    PermissionProto.GetPlayerRolesRequest.newBuilder().setPlayerId(player.getUuid().toString()).build()
             ).get();
 
             Set<String> roleIds = Sets.newConcurrentHashSet(result.getRoleIdsList());
@@ -73,7 +86,7 @@ public class PermissionCache {
 
             Set<Permission> permissions = new HashSet<>();
             for (String roleId : roleIds) {
-                Role role = this.roleCache.get(roleId);
+                CachedRole role = this.roleCache.get(roleId);
                 if (role == null) continue;
 
                 permissions.addAll(role.getPermissions());
@@ -85,7 +98,7 @@ public class PermissionCache {
         }
     }
 
-    public Map<String, Role> getRoleCache() {
+    public Map<String, CachedRole> getRoleCache() {
         return roleCache;
     }
 
@@ -93,7 +106,7 @@ public class PermissionCache {
         return userCache;
     }
 
-    public Optional<Role> getRole(String id) {
+    public Optional<CachedRole> getRole(String id) {
         return Optional.ofNullable(this.roleCache.get(id));
     }
 
@@ -101,11 +114,11 @@ public class PermissionCache {
         return Optional.ofNullable(this.userCache.get(id));
     }
 
-    public void addRole(PermissionProto.RoleResponse roleResponse) {
-        Role role = new Role(
+    public void addRole(Role roleResponse) {
+        CachedRole role = new CachedRole(
                 roleResponse.getId(),
                 Sets.newConcurrentHashSet(roleResponse.getPermissionsList().stream()
-                        .filter(node -> node.getState() == PermissionProto.PermissionNode.PermissionState.ALLOW)
+                        .filter(node -> node.getState() == PermissionNode.PermissionState.ALLOW)
                         .map(protoNode -> new Permission(protoNode.getNode()))
                         .collect(Collectors.toSet())),
                 roleResponse.getPriority(), roleResponse.getDisplayPrefix(), roleResponse.getDisplayName()
@@ -117,7 +130,7 @@ public class PermissionCache {
     public Component determineActivePrefix(Collection<String> roleIds) {
         int currentPriority = 0;
         Component currentPrefix = null;
-        for (Role role : this.roleCache.values()) {
+        for (CachedRole role : this.roleCache.values()) {
             if (role.getDisplayPrefix() != null && roleIds.contains(role.getId())) {
                 if (role.getPriority() > currentPriority) {
                     currentPriority = role.getPriority();
@@ -132,7 +145,7 @@ public class PermissionCache {
         int currentPriority = 0;
         String currentActiveName = null;
 
-        for (Role role : this.roleCache.values()) {
+        for (CachedRole role : this.roleCache.values()) {
             if (role.getDisplayName() != null && roleIds.contains(role.getId())) {
                 if (role.getPriority() > currentPriority) {
                     currentPriority = role.getPriority();
@@ -190,7 +203,7 @@ public class PermissionCache {
         }
     }
 
-    public static final class Role implements Comparable<Role> {
+    public static final class CachedRole implements Comparable<CachedRole> {
         private final String id;
         private final Set<Permission> permissions;
 
@@ -198,7 +211,7 @@ public class PermissionCache {
         private Component displayPrefix;
         private String displayName;
 
-        public Role(String id, Set<Permission> permissions, int priority, String displayPrefix, String displayName) {
+        public CachedRole(String id, Set<Permission> permissions, int priority, String displayPrefix, String displayName) {
             this.id = id;
             this.permissions = permissions;
             this.priority = priority;
@@ -207,7 +220,7 @@ public class PermissionCache {
         }
 
         @Override
-        public int compareTo(@NotNull PermissionCache.Role o) {
+        public int compareTo(@NotNull PermissionCache.CachedRole o) {
             return Integer.compare(this.priority, o.priority);
         }
 

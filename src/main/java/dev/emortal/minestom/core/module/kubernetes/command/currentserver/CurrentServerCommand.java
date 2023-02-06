@@ -1,6 +1,6 @@
 package dev.emortal.minestom.core.module.kubernetes.command.currentserver;
 
-import dev.emortal.api.service.PlayerTrackerProto;
+import dev.emortal.api.model.playertracker.PlayerLocation;
 import dev.emortal.minestom.core.module.kubernetes.PlayerTrackerManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -37,12 +37,12 @@ public class CurrentServerCommand extends Command {
 
         this.setDefaultExecutor((sender, context) -> {
             Player player = (Player) sender;
-            this.playerTrackerManager.retrievePlayerServer(player.getUuid(), onlineServer -> {
+            this.playerTrackerManager.retrievePlayerServer(player.getUuid(), location -> {
                 sender.sendMessage(MINI_MESSAGE.deserialize(MESSAGE,
-                                Placeholder.unparsed("server_id", onlineServer.getServerId()),
-                                Placeholder.unparsed("proxy_id", onlineServer.getProxyId()))
+                                Placeholder.unparsed("server_id", location.getServerId()),
+                                Placeholder.unparsed("proxy_id", location.getProxyId()))
                         .clickEvent(ClickEvent.copyToClipboard(
-                                this.createCopyableData(onlineServer, player)
+                                this.createCopyableData(location, player)
                         ))
                         .hoverEvent(HoverEvent.showText(
                                 Component.text("Click to copy", NamedTextColor.GREEN)
@@ -52,10 +52,10 @@ public class CurrentServerCommand extends Command {
         });
     }
 
-    private String createCopyableData(@NotNull PlayerTrackerProto.OnlineServer onlineServer, @NotNull Player player) {
+    private String createCopyableData(@NotNull PlayerLocation location, @NotNull Player player) {
         return COPY_MESSAGE.formatted(
-                onlineServer.getProxyId(),
-                onlineServer.getServerId(),
+                location.getProxyId(),
+                location.getServerId(),
                 player.getInstance().getUniqueId(),
                 this.formatPos(player.getPosition())
         );

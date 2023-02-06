@@ -17,17 +17,17 @@ repositories {
 }
 
 dependencies {
+    api("com.github.Minestom.Minestom:Minestom:8eb089bf3e")
+//    api("net.minestom.server:Minestom:1.0") // local
+    implementation("net.kyori:adventure-text-minimessage:4.12.0")
+
     api("dev.emortal.api:agones-sdk:1.0.5")
-    api("dev.emortal.api:grpc-sdk:393f9a8")
+    api("dev.emortal.api:common-proto-sdk:0f7f5c0")
+
     api("io.kubernetes:client-java:16.0.2")
     implementation("com.rabbitmq:amqp-client:5.16.0")
 
     api("io.micrometer:micrometer-registry-prometheus:1.10.3")
-
-    api("com.github.Minestom.Minestom:Minestom:8eb089bf3e")
-    implementation("net.kyori:adventure-text-minimessage:4.12.0")
-
-//    api("net.minestom.server:Minestom:1.0") // local
 
     // Used for the packaged topological sorting
     implementation("org.jgrapht:jgrapht-core:1.5.1")
