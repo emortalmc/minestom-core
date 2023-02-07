@@ -25,8 +25,6 @@ public final class MinestomServer {
     private static final String DEFAULT_ADDRESS = "0.0.0.0";
     private static final String DEFAULT_PORT = "25565";
 
-    public static final int MAX_PLAYERS = System.getenv("MAX_PLAYERS") == null ? 100 : Integer.parseInt(System.getenv("MAX_PLAYERS"));
-
     public MinestomServer(Builder builder) {
         MinecraftServer server = MinecraftServer.init();
         MinecraftServer.setCompressionThreshold(0);

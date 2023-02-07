@@ -1,6 +1,5 @@
 package dev.emortal.minestom.core.module.kubernetes.rabbitmq;
 
-import com.google.gson.Gson;
 import com.google.protobuf.AbstractMessage;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -23,14 +22,11 @@ import java.util.function.Consumer;
 public class RabbitMqCore {
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqCore.class);
 
-    private static final String CONNECTIONS_EXCHANGE = "mc:connections";
     private static final String BACKEND_ALL_EXCHANGE = "mc:gameserver:all";
 
     private static final String HOST = System.getenv("RABBITMQ_HOST");
     private static final String USERNAME = System.getenv("RABBITMQ_USERNAME");
     private static final String PASSWORD = System.getenv("RABBITMQ_PASSWORD");
-
-    private static final Gson GSON = new Gson();
 
     private final Map<Class<?>, Consumer<AbstractMessage>> protoListeners = new ConcurrentHashMap<>();
     private final Connection connection;
@@ -86,8 +82,9 @@ public class RabbitMqCore {
         MinecraftServer.getSchedulerManager().buildShutdownTask(this::shutdown);
     }
 
-    public <T extends AbstractMessage> void addListener(final Class<T> messageType, final Consumer<AbstractMessage> listener) {
-        this.protoListeners.put(messageType, listener);
+    @SuppressWarnings("unchecked")
+    public <T extends AbstractMessage> void addListener(final Class<T> messageType, final Consumer<T> listener) {
+        this.protoListeners.put(messageType, (Consumer<AbstractMessage>) listener);
     }
 
     public void publish(final String channel, final AbstractMessage message) {

@@ -7,7 +7,6 @@ import dev.emortal.api.agonessdk.AgonesUtils;
 import dev.emortal.api.agonessdk.IgnoredStreamObserver;
 import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.Environment;
-import dev.emortal.minestom.core.MinestomServer;
 import dev.emortal.minestom.core.module.Module;
 import dev.emortal.minestom.core.module.ModuleData;
 import dev.emortal.minestom.core.module.ModuleEnvironment;
@@ -109,15 +108,13 @@ public class KubernetesModule extends Module {
     @Override
     public void onReady() {
         if (AGONES_SDK_ENABLED) {
-            LOGGER.info("Marking server as READY for Agones with a capacity of {} players", MinestomServer.MAX_PLAYERS);
+            LOGGER.info("Marking server as READY for Agones");
 
             AgonesUtils.startHealthTask(this.sdk, 10, TimeUnit.SECONDS);
             this.sdk.ready(AgonesSDKProto.Empty.getDefaultInstance(), new IgnoredStreamObserver<>());
 
             this.eventNode.addListener(PlayerLoginEvent.class, this::onConnect)
                     .addListener(PlayerDisconnectEvent.class, this::onDisconnect);
-
-            this.alphaSdk.setPlayerCapacity(AlphaAgonesSDKProto.Count.newBuilder().setCount(MinestomServer.MAX_PLAYERS).build());
         }
     }
 
