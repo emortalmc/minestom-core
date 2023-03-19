@@ -38,7 +38,13 @@ public class ModuleManager {
             EventNode<Event> eventNode = EventNode.all(moduleData.name());
             this.modulesNode.addChild(eventNode);
 
-            Module module = loadableModule.creator().apply(new ModuleEnvironment(eventNode, this));
+            Module module;
+            try {
+                module = loadableModule.creator().create(new ModuleEnvironment(eventNode, this));
+            } catch (Exception e) {
+                LOGGER.error("Failed to create module {}", moduleData.name(), e);
+                continue;
+            }
 
             Instant loadStart = Instant.now();
             boolean loadResult = module.onLoad();

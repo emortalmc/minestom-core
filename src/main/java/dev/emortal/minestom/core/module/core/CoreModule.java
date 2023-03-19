@@ -22,7 +22,7 @@ public class CoreModule extends Module {
 
         PlayerResolver.setPlatformUsernameResolver(username -> {
             Player player = MinecraftServer.getConnectionManager().getPlayer(username);
-            if (player != null) return new PlayerResolver.CachedMcPlayer(player.getUuid(), player.getUsername());
+            if (player != null) return new PlayerResolver.CachedMcPlayer(player.getUuid(), player.getUsername(), player.isOnline());
             return null;
         });
         return true;

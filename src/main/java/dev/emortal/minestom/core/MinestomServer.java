@@ -6,6 +6,7 @@ import dev.emortal.minestom.core.module.ModuleManager;
 import dev.emortal.minestom.core.module.chat.ChatModule;
 import dev.emortal.minestom.core.module.core.CoreModule;
 import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
+import dev.emortal.minestom.core.module.liveconfig.LiveConfigModule;
 import dev.emortal.minestom.core.module.permissions.PermissionModule;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.Event;
@@ -14,10 +15,10 @@ import net.minestom.server.extras.velocity.VelocityProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 public final class MinestomServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(MinestomServer.class);
@@ -83,11 +84,13 @@ public final class MinestomServer {
             this.module(KubernetesModule.class, KubernetesModule::new)
                     .module(CoreModule.class, CoreModule::new)
                     .module(PermissionModule.class, PermissionModule::new)
-                    .module(ChatModule.class, ChatModule::new);
+                    .module(ChatModule.class, ChatModule::new)
+                    .module(LiveConfigModule.class, LiveConfigModule::new);
+
             return this;
         }
 
-        public Builder module(Class<? extends Module> clazz, Function<ModuleEnvironment, Module> moduleCreator) {
+        public Builder module(Class<? extends Module> clazz, ModuleCreator moduleCreator) {
             this.modules.add(new LoadableModule(clazz, moduleCreator));
             return this;
         }
@@ -106,7 +109,7 @@ public final class MinestomServer {
             return defaultValue;
         }
 
-        public record LoadableModule(Class<? extends Module> clazz, Function<ModuleEnvironment, Module> creator) {
+        public record LoadableModule(Class<? extends Module> clazz, ModuleCreator creator) {
         }
 
         public List<LoadableModule> getModules() {
@@ -120,5 +123,10 @@ public final class MinestomServer {
         public String getAddress() {
             return this.address;
         }
+    }
+
+    @FunctionalInterface
+    public interface ModuleCreator {
+        Module create(ModuleEnvironment environment) throws IOException;
     }
 }

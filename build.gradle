@@ -10,7 +10,9 @@ version "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-    mavenLocal() // In maven local: openmatch.frontend
+    mavenLocal()
+
+    maven { url = "https://packages.confluent.io/maven/" }
     maven { url = "https://repo.emortal.dev/snapshots" }
     maven { url = "https://repo.emortal.dev/releases" }
     maven { url = "https://jitpack.io" }
@@ -18,11 +20,11 @@ repositories {
 
 dependencies {
     api("com.github.Minestom.Minestom:Minestom:aebf72de90")
-//    api("net.minestom.server:Minestom:1.0") // local
     implementation("net.kyori:adventure-text-minimessage:4.12.0")
 
     api("dev.emortal.api:agones-sdk:1.0.5")
-    api("dev.emortal.api:common-proto-sdk:0f7f5c0")
+    api("dev.emortal.api:common-proto-sdk:d29065c")
+    api("dev.emortal.api:live-config-parser:4f1eff2")
 
     api("io.kubernetes:client-java:16.0.2")
     implementation("com.rabbitmq:amqp-client:5.16.0")
