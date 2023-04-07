@@ -12,7 +12,6 @@ import dev.emortal.minestom.core.module.ModuleData;
 import dev.emortal.minestom.core.module.ModuleEnvironment;
 import dev.emortal.minestom.core.module.kubernetes.command.agones.AgonesCommand;
 import dev.emortal.minestom.core.module.kubernetes.command.currentserver.CurrentServerCommand;
-import dev.emortal.minestom.core.module.kubernetes.rabbitmq.RabbitMqCore;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.kubernetes.client.ProtoClient;
@@ -30,7 +29,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 @ModuleData(name = "kubernetes", required = true)
-public class KubernetesModule extends Module {
+public final class KubernetesModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(KubernetesModule.class);
 
     private static final boolean KUBERNETES_ENABLED = Environment.isProduction(); // Kubernetes support can only be enabled if run in-cluster
@@ -81,7 +80,6 @@ public class KubernetesModule extends Module {
             PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(playerTracker);
             MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
         });
-        new RabbitMqCore(this.eventNode);
 
         // agones
         if (AGONES_SDK_ENABLED) {

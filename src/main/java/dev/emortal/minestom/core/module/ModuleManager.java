@@ -30,7 +30,7 @@ public class ModuleManager {
     public ModuleManager(MinestomServer.Builder builder, @NotNull EventNode<Event> modulesNode) {
         this.modulesNode = modulesNode;
 
-        List<MinestomServer.Builder.LoadableModule> sortedModules = this.sortModules(builder.getModules());
+        List<MinestomServer.Builder.LoadableModule> sortedModules = this.sortModules(builder.getModules().values());
 
         for (MinestomServer.Builder.LoadableModule loadableModule : sortedModules) {
             ModuleData moduleData = loadableModule.clazz().getDeclaredAnnotation(ModuleData.class);

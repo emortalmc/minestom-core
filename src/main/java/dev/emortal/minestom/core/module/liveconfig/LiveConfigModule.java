@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 @ModuleData(name = "liveconfig", required = false)
-public class LiveConfigModule extends Module {
+public final class LiveConfigModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(LiveConfigModule.class);
 
     private final ConfigCollection configCollection;

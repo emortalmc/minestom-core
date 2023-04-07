@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.UUID;
 
 @ModuleData(name = "permissions", required = true)
-public class PermissionModule extends Module {
+public final class PermissionModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionModule.class);
 
     private static final boolean ENABLED;

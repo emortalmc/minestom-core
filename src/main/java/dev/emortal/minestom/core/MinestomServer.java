@@ -7,17 +7,19 @@ import dev.emortal.minestom.core.module.chat.ChatModule;
 import dev.emortal.minestom.core.module.core.CoreModule;
 import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
 import dev.emortal.minestom.core.module.liveconfig.LiveConfigModule;
+import dev.emortal.minestom.core.module.matchmaker.MatchmakerModule;
+import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import dev.emortal.minestom.core.module.permissions.PermissionModule;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
+import net.minestom.server.extras.MojangAuth;
 import net.minestom.server.extras.velocity.VelocityProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 public final class MinestomServer {
@@ -30,6 +32,11 @@ public final class MinestomServer {
         MinecraftServer server = MinecraftServer.init();
         MinecraftServer.setCompressionThreshold(0);
         this.tryEnableVelocity();
+
+        if (builder.mojangAuth) {
+            LOGGER.info("Enabling Mojang authentication");
+            MojangAuth.init();
+        }
 
         LOGGER.info("Starting server at {}:{}", builder.address, builder.port);
 
@@ -57,8 +64,9 @@ public final class MinestomServer {
     public static final class Builder {
         private String address = getValue("minestom.address", DEFAULT_ADDRESS);
         private int port = Integer.parseInt(getValue("minestom.port", DEFAULT_PORT));
+        private boolean mojangAuth = false;
 
-        private final List<LoadableModule> modules = new ArrayList<>();
+        private final Map<Class<? extends Module>, LoadableModule> modules = new HashMap<>();
 
         public Builder() {
             // we do this because env variables in dockerfiles break k8s env variables?
@@ -80,18 +88,29 @@ public final class MinestomServer {
             return this;
         }
 
+        public Builder mojangAuth(boolean mojangAuth) {
+            this.mojangAuth = mojangAuth;
+            return this;
+        }
+
         public Builder commonModules() {
             this.module(KubernetesModule.class, KubernetesModule::new)
                     .module(CoreModule.class, CoreModule::new)
                     .module(PermissionModule.class, PermissionModule::new)
                     .module(ChatModule.class, ChatModule::new)
-                    .module(LiveConfigModule.class, LiveConfigModule::new);
+                    .module(LiveConfigModule.class, LiveConfigModule::new)
+                    .module(MessagingModule.class, MessagingModule::new)
+                    .module(MatchmakerModule.class, MatchmakerModule::new);
 
             return this;
         }
 
         public Builder module(Class<? extends Module> clazz, ModuleCreator moduleCreator) {
-            this.modules.add(new LoadableModule(clazz, moduleCreator));
+            LoadableModule deleted = this.modules.put(clazz, new LoadableModule(clazz, moduleCreator));
+            if (deleted != null) {
+                LOGGER.info("Module {} was already registered, overwriting", clazz.getSimpleName());
+            }
+
             return this;
         }
 
@@ -112,7 +131,7 @@ public final class MinestomServer {
         public record LoadableModule(Class<? extends Module> clazz, ModuleCreator creator) {
         }
 
-        public List<LoadableModule> getModules() {
+        public Map<Class<? extends Module>, LoadableModule> getModules() {
             return this.modules;
         }
 

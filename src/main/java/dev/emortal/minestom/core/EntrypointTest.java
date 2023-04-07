@@ -17,6 +17,7 @@ public final class EntrypointTest {
         new MinestomServer.Builder()
                 .address("localhost")
                 .port(25565)
+                .mojangAuth(true)
                 .commonModules()
                 .module(MonitoringModule.class, env -> new MonitoringModule(env, "core-test"))
                 .build();

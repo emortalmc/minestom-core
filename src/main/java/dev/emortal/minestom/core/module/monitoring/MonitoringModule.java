@@ -23,7 +23,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 
 @ModuleData(name = "monitoring", required = false)
-public class MonitoringModule extends Module {
+public final class MonitoringModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(MonitoringModule.class);
     private final @NotNull String serviceName;
 

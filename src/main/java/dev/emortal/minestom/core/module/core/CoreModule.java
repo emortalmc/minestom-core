@@ -10,7 +10,7 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 @ModuleData(name = "core", required = false)
-public class CoreModule extends Module {
+public final class CoreModule extends Module {
 
     public CoreModule(@NotNull ModuleEnvironment environment) {
         super(environment);

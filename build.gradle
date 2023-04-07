@@ -19,17 +19,18 @@ repositories {
 }
 
 dependencies {
-    api("com.github.Minestom.Minestom:Minestom:aebf72de90")
+    api("com.github.Minestom.Minestom:Minestom:8ad2c7701f")
     implementation("net.kyori:adventure-text-minimessage:4.12.0")
 
     api("dev.emortal.api:agones-sdk:1.0.5")
-    api("dev.emortal.api:common-proto-sdk:d29065c")
-    api("dev.emortal.api:live-config-parser:11c5a36")
+    api("dev.emortal.api:common-proto-sdk:1a2c7c5")
+    api("dev.emortal.api:live-config-parser:44f54df")
+    api("dev.emortal.api:kurushimi-sdk:ca370a4")
 
-    api("io.kubernetes:client-java:16.0.2")
+    api('io.kubernetes:client-java:18.0.0')
     implementation("com.rabbitmq:amqp-client:5.16.0")
 
-    api("io.micrometer:micrometer-registry-prometheus:1.10.3")
+    api("io.micrometer:micrometer-registry-prometheus:1.10.5")
 
     // Used for the packaged topological sorting
     implementation("org.jgrapht:jgrapht-core:1.5.1")
