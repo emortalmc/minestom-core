@@ -14,26 +14,26 @@ public abstract class MatchmakingSession {
         this.ticket = ticket;
     }
 
-    abstract void onPendingMatchCreate(@NotNull PendingMatch match);
+    public abstract void onPendingMatchCreate(@NotNull PendingMatch match);
 
-    abstract void onPendingMatchUpdate(@NotNull PendingMatch match);
+    public abstract void onPendingMatchUpdate(@NotNull PendingMatch match);
 
-    abstract void onPendingMatchCancelled(@NotNull PendingMatch match);
+    public abstract void onPendingMatchCancelled(@NotNull PendingMatch match);
 
     /**
      * Notifies the player that they have been removed from the queue.
      *
      * @param reason The reason for the deletion
      */
-    abstract void notifyDeletion(@NotNull DeleteReason reason);
+    public abstract void notifyDeletion(@NotNull DeleteReason reason);
 
     /**
      * Destroy the matchmaking session. This is called either after {@link #notifyDeletion(DeleteReason)}
      * or when the player disconnects.
      */
-    abstract void destroy();
+    public abstract void destroy();
 
-    enum DeleteReason {
+    public enum DeleteReason {
         GAME_MODE_DELETED,
         MANUAL_DEQUEUE,
         MATCH_CREATED,

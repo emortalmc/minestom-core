@@ -48,7 +48,7 @@ public class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     }
 
     @Override
-    void onPendingMatchCreate(@NotNull PendingMatch match) {
+    public void onPendingMatchCreate(@NotNull PendingMatch match) {
         Instant teleportTime = ProtoTimestampConverter.fromProto(match.getTeleportTime());
         int secondsToTeleport = (int) (teleportTime.getEpochSecond() - Instant.now().getEpochSecond());
 
@@ -59,12 +59,12 @@ public class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     }
 
     @Override
-    void onPendingMatchUpdate(@NotNull PendingMatch match) {
+    public void onPendingMatchUpdate(@NotNull PendingMatch match) {
         // do nothing
     }
 
     @Override
-    void onPendingMatchCancelled(@NotNull PendingMatch match) {
+    public void onPendingMatchCancelled(@NotNull PendingMatch match) {
         this.player.sendMessage(MINI_MESSAGE.deserialize(MATCH_CANCELLED_MESSAGE,
                 Placeholder.unparsed("mode", this.gameMode.getFriendlyName())
         ));
@@ -75,7 +75,7 @@ public class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     }
 
     @Override
-    void notifyDeletion(@NotNull DeleteReason reason) {
+    public void notifyDeletion(@NotNull DeleteReason reason) {
         switch (reason) {
             case MANUAL_DEQUEUE ->
                     this.player.sendMessage(Component.text("You have been removed from the queue.", NamedTextColor.RED));
@@ -87,11 +87,7 @@ public class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     }
 
     @Override
-    void destroy() {
+    public void destroy() {
         this.future.cancel(false);
-    }
-
-    public void setTicket(@NotNull Ticket ticket) {
-        this.ticket = ticket;
     }
 }
