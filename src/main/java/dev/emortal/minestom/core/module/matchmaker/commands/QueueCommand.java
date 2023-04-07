@@ -10,9 +10,8 @@ import dev.emortal.api.liveconfigparser.configs.ConfigUpdate;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeCollection;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
 import dev.emortal.api.utils.callback.FunctionalFutureCallback;
+import dev.emortal.minestom.core.module.matchmaker.CommonMatchmakerError;
 import io.grpc.protobuf.StatusProto;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.command.CommandSender;
@@ -29,12 +28,6 @@ import java.util.stream.Stream;
 
 public class QueueCommand extends Command {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
-
-    private static final String QUEUE_SUCCESS = "<green>Queued for <mode>!</green>";
-    private static final String UNKNOWN_ERROR = "<red>An unknown error occurred while trying to queue you for <mode>. Please try again later.</red>";
-    private static final Component ALREADY_IN_QUEUE = Component.text("You are already queued!", NamedTextColor.RED);
-    private static final String PARTY_TOO_LARGE = "<red>Your party is too large for <mode>. The maximum party size is <max> players.</red>";
-    private static final String PARTIES_NOT_ALLOWED = "<red>Parties are not allowed in <mode>.</red>";
 
     private final MatchmakerGrpc.MatchmakerFutureStub matchmaker;
     private final List<GameModeConfig> configs;
@@ -92,7 +85,7 @@ public class QueueCommand extends Command {
 
         Futures.addCallback(queueReqFuture, FunctionalFutureCallback.create(
                 response -> sender.sendMessage(
-                        MINI_MESSAGE.deserialize(QUEUE_SUCCESS, Placeholder.unparsed("mode", mode.getFriendlyName()))
+                        MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_SUCCESS, Placeholder.unparsed("mode", mode.getFriendlyName()))
                 ),
                 throwable -> {
                     Status status = StatusProto.fromThrowable(throwable);
@@ -106,30 +99,30 @@ public class QueueCommand extends Command {
                         QueueByPlayerErrorResponse errorResponse = status.getDetails(0).unpack(QueueByPlayerErrorResponse.class);
 
                         player.sendMessage(switch (errorResponse.getReason()) {
-                            case ALREADY_IN_QUEUE -> ALREADY_IN_QUEUE;
+                            case ALREADY_IN_QUEUE -> CommonMatchmakerError.QUEUE_ERR_ALREADY_IN_QUEUE;
                             case INVALID_MAP -> {
                                 LOGGER.error("Invalid map for gamemode " + mode.getFriendlyName());
-                                yield MINI_MESSAGE.deserialize(UNKNOWN_ERROR, Placeholder.unparsed("mode", mode.getFriendlyName()));
+                                yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, Placeholder.unparsed("mode", mode.getFriendlyName()));
                             }
-                            case PARTY_TOO_LARGE -> MINI_MESSAGE.deserialize(PARTY_TOO_LARGE,
+                            case PARTY_TOO_LARGE -> MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_PARTY_TOO_LARGE,
                                     Placeholder.unparsed("mode", mode.getFriendlyName()),
                                     Placeholder.unparsed("max", String.valueOf(mode.getPartyRestrictions().getMaxSize()))
                             );
                             case INVALID_GAME_MODE -> {
                                 LOGGER.error("Invalid gamemode " + mode.getFriendlyName());
-                                yield MINI_MESSAGE.deserialize(UNKNOWN_ERROR, Placeholder.unparsed("mode", mode.getFriendlyName()));
+                                yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, Placeholder.unparsed("mode", mode.getFriendlyName()));
                             }
                             case GAME_MODE_DISABLED -> {
                                 LOGGER.error("Gamemode " + mode.getFriendlyName() + " is disabled");
-                                yield MINI_MESSAGE.deserialize(UNKNOWN_ERROR, Placeholder.unparsed("mode", mode.getFriendlyName()));
+                                yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, Placeholder.unparsed("mode", mode.getFriendlyName()));
                             }
                             case PARTIES_NOT_ALLOWED -> {
                                 LOGGER.error("Parties are not allowed for gamemode " + mode.getFriendlyName());
-                                yield MINI_MESSAGE.deserialize(PARTIES_NOT_ALLOWED, Placeholder.unparsed("mode", mode.getFriendlyName()));
+                                yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_PARTIES_NOT_ALLOWED, Placeholder.unparsed("mode", mode.getFriendlyName()));
                             }
                             default -> {
                                 LOGGER.error("An unknown error occurred while queuing for " + mode.getFriendlyName(), throwable);
-                                yield MINI_MESSAGE.deserialize(UNKNOWN_ERROR, Placeholder.unparsed("mode", mode.getFriendlyName()));
+                                yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, Placeholder.unparsed("mode", mode.getFriendlyName()));
                             }
                         });
                     } catch (InvalidProtocolBufferException e) {
