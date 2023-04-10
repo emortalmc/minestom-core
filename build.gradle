@@ -25,7 +25,7 @@ dependencies {
     api("dev.emortal.api:agones-sdk:1.0.5")
     api("dev.emortal.api:common-proto-sdk:1a2c7c5")
     api("dev.emortal.api:live-config-parser:44f54df")
-    api("dev.emortal.api:kurushimi-sdk:ca370a4")
+    api("dev.emortal.api:kurushimi-sdk:5f9fde3")
 
     api('io.kubernetes:client-java:18.0.0')
     implementation("com.rabbitmq:amqp-client:5.16.0")
