@@ -26,8 +26,7 @@ public final class PermissionModule extends Module {
     private static final boolean GRANT_ALL_PERMISSIONS;
 
     static {
-        String portString = System.getenv("PERMISSION_SVC_PORT");
-        ENABLED = Environment.isProduction() || portString != null;
+        ENABLED = Environment.isProduction() || GrpcStubCollection.getPermissionService().isPresent();
 
         String grantAllString = System.getenv("GRANT_ALL_PERMISSIONS");
         GRANT_ALL_PERMISSIONS = Boolean.parseBoolean(grantAllString);
