@@ -1,27 +1,23 @@
 package dev.emortal.minestom.core.module.chat;
 
+import dev.emortal.api.message.common.PlayerChatMessageMessage;
+import dev.emortal.api.message.messagehandler.ChatMessageCreatedMessage;
+import dev.emortal.api.model.messagehandler.ChatMessage;
+import dev.emortal.api.utils.kafka.FriendlyKafkaProducer;
 import dev.emortal.minestom.core.module.Module;
 import dev.emortal.minestom.core.module.ModuleData;
 import dev.emortal.minestom.core.module.ModuleEnvironment;
-import dev.emortal.minestom.core.module.permissions.PermissionCache;
+import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import dev.emortal.minestom.core.module.permissions.PermissionModule;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.minestom.server.adventure.audience.Audiences;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerChatEvent;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
-
-@ModuleData(name = "chat", softDependencies = {PermissionModule.class}, required = false)
+@ModuleData(name = "chat", softDependencies = {PermissionModule.class, MessagingModule.class}, required = false)
 public final class ChatModule extends Module {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ChatModule.class);
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
-
-    private static final String CHAT_FORMAT = "<click:suggest_command:'/message <username> '><prefix> <display_name></click>: <message>";
 
     public ChatModule(@NotNull ModuleEnvironment environment) {
         super(environment);
@@ -29,28 +25,25 @@ public final class ChatModule extends Module {
 
     @Override
     public boolean onLoad() {
-        PermissionModule permissionModule = this.moduleManager.getModule(PermissionModule.class);
-        PermissionCache permissionCache = permissionModule.getPermissionCache();
+        MessagingModule messagingModule = this.moduleManager.getModule(MessagingModule.class);
+        FriendlyKafkaProducer kafkaProducer = messagingModule.getKafkaProducer();
 
-        if (permissionCache == null) {
-            LOGGER.warn("Permission module is not loaded, chat will not be formatted.");
-            return true;
-        }
+        messagingModule.addListener(ChatMessageCreatedMessage.class, message -> {
+            ChatMessage chatMessage = message.getMessage();
+            Audiences.all().sendMessage(MINI_MESSAGE.deserialize(chatMessage.getMessage()));
+        });
 
         this.eventNode.addListener(PlayerChatEvent.class, event -> {
-            Player player = event.getPlayer();
-            event.setChatFormat(unused -> {
-                Optional<PermissionCache.User> optionalUser = permissionCache.getUser(player.getUuid());
-                if (optionalUser.isEmpty()) return Component.text(event.getMessage());
+            event.setCancelled(true);
 
-                PermissionCache.User user = optionalUser.get();
-                return MINI_MESSAGE.deserialize(CHAT_FORMAT,
-                        Placeholder.component("prefix", user.getDisplayPrefix()),
-                        Placeholder.parsed("username", player.getUsername()),
-                        Placeholder.parsed("display_name", user.getDisplayName()),
-                        Placeholder.unparsed("message", event.getMessage())
-                );
-            });
+            Player player = event.getPlayer();
+            kafkaProducer.produceAndForget(PlayerChatMessageMessage.newBuilder()
+                    .setMessage(
+                            ChatMessage.newBuilder()
+                                    .setMessage(event.getMessage())
+                                    .setSenderId(player.getUuid().toString())
+                                    .setSenderUsername(player.getUsername())
+                    ).build());
         });
         return true;
     }

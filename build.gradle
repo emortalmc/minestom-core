@@ -3,6 +3,7 @@ plugins {
     id("maven-publish")
 
     id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("com.github.evestera.depsize") version "0.1.0"
 }
 
 group "dev.emortal.minestom.core"
@@ -23,9 +24,9 @@ dependencies {
     implementation("net.kyori:adventure-text-minimessage:4.12.0")
 
     api("dev.emortal.api:agones-sdk:1.0.5")
-    api("dev.emortal.api:common-proto-sdk:86fb6e5")
+    api("dev.emortal.api:common-proto-sdk:a4aea07")
     api("dev.emortal.api:live-config-parser:44f54df")
-    api("dev.emortal.api:kurushimi-sdk:5f9fde3")
+    api("dev.emortal.api:kurushimi-sdk:684e7c4")
 
     api('io.kubernetes:client-java:18.0.0')
     implementation("com.rabbitmq:amqp-client:5.16.0")

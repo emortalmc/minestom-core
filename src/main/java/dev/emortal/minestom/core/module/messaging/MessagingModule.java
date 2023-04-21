@@ -2,6 +2,7 @@ package dev.emortal.minestom.core.module.messaging;
 
 import com.google.protobuf.AbstractMessage;
 import dev.emortal.api.utils.kafka.FriendlyKafkaConsumer;
+import dev.emortal.api.utils.kafka.FriendlyKafkaProducer;
 import dev.emortal.api.utils.kafka.KafkaSettings;
 import dev.emortal.api.utils.parser.MessageProtoConfig;
 import dev.emortal.api.utils.parser.ProtoParserRegistry;
@@ -31,6 +32,7 @@ public final class MessagingModule extends Module {
 
     private final RabbitMqCore rabbitMqCore;
     private final @Nullable FriendlyKafkaConsumer kafkaConsumer;
+    private final @Nullable FriendlyKafkaProducer kafkaProducer;
 
     public MessagingModule(@NotNull ModuleEnvironment environment) {
         super(environment);
@@ -38,9 +40,10 @@ public final class MessagingModule extends Module {
         this.rabbitMqCore = new RabbitMqCore();
 
         if (!Environment.isProduction() && !PortUtils.isPortUsed(KAFKA_HOST, Integer.parseInt(KAFKA_PORT))) {
-            LOGGER.warn("Kafka is not available, disabling Kafka consumer");
+            LOGGER.warn("Kafka is not available, disabling Kafka consumer and producer");
             
             this.kafkaConsumer = null;
+            this.kafkaProducer = null;
             return;
         }
         
@@ -49,6 +52,7 @@ public final class MessagingModule extends Module {
                 .setBootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT);
 
         this.kafkaConsumer = new FriendlyKafkaConsumer(kafkaSettings);
+        this.kafkaProducer = new FriendlyKafkaProducer(kafkaSettings);
     }
 
     public <T extends AbstractMessage> void addListener(Class<T> messageType, Consumer<T> listener) {
@@ -64,6 +68,10 @@ public final class MessagingModule extends Module {
         }
     }
 
+    public FriendlyKafkaProducer getKafkaProducer() {
+        return this.kafkaProducer;
+    }
+
     @Override
     public boolean onLoad() {
         // TODO should we do a health check here?
@@ -74,5 +82,6 @@ public final class MessagingModule extends Module {
     public void onUnload() {
         this.rabbitMqCore.shutdown();
         if (this.kafkaConsumer != null) this.kafkaConsumer.close();
+        if (this.kafkaProducer != null) this.kafkaProducer.shutdown();
     }
 }

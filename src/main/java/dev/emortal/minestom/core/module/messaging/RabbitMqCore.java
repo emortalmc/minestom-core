@@ -66,6 +66,8 @@ public class RabbitMqCore {
                 AbstractMessage message = ProtoParserRegistry.parse(type, delivery.getBody());
                 Set<Consumer<AbstractMessage>> listeners = this.protoListeners.get(message.getClass());
 
+                if (listeners == null) return;
+
                 try {
                     listeners.forEach(consumer -> consumer.accept(message));
                 } catch (Exception ex) {
