@@ -24,7 +24,7 @@ dependencies {
     implementation("net.kyori:adventure-text-minimessage:4.12.0")
 
     api("dev.emortal.api:agones-sdk:1.0.5")
-    api("dev.emortal.api:common-proto-sdk:a4aea07")
+    api("dev.emortal.api:common-proto-sdk:cdb3778")
     api("dev.emortal.api:live-config-parser:44f54df")
     api("dev.emortal.api:kurushimi-sdk:684e7c4")
 

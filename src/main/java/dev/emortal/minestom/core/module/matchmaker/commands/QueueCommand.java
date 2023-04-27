@@ -55,8 +55,7 @@ public class QueueCommand extends Command {
             }
 
 
-            stream.map(SuggestionEntry::new)
-                    .forEach(suggestion::addEntry);
+            stream.map(SuggestionEntry::new).forEach(suggestion::addEntry);
         });
 
         this.addSyntax(this::execute, modeArg);
