@@ -59,7 +59,7 @@ public final class MatchmakerModule extends Module {
             return false;
         }
 
-        Optional<GameModeCollection> gameModeCollection = this.liveConfig.getConfigCollection().getGameModeCollection();
+        Optional<GameModeCollection> gameModeCollection = this.liveConfig.getConfigCollection().gameModes();
         if (gameModeCollection.isEmpty()) {
             LOGGER.error("GameModeCollection is not present in LiveConfigModule but is required for MatchmakerModule");
             return false;

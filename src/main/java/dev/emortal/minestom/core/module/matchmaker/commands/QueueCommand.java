@@ -54,7 +54,6 @@ public class QueueCommand extends Command {
                 stream = stream.filter(name -> name.toLowerCase().startsWith(inputLower));
             }
 
-
             stream.map(SuggestionEntry::new).forEach(suggestion::addEntry);
         });
 
@@ -132,12 +131,12 @@ public class QueueCommand extends Command {
         ), ForkJoinPool.commonPool());
     }
 
-    private void handleUpdate(ConfigUpdate<GameModeConfig> update) {
+    private void handleUpdate(@NotNull ConfigUpdate<GameModeConfig> update) {
         switch (update.getType()) {
             case CREATE -> this.configs.add(update.getConfig());
-            case DELETE -> this.configs.removeIf(config -> config.getId().equals(update.getConfigId()));
+            case DELETE -> this.configs.removeIf(config -> config.getFileName().equals(update.getFileName()));
             case MODIFY -> {
-                this.configs.removeIf(config -> config.getPath().equals(update.getConfig().getPath()));
+                this.configs.removeIf(config -> config.getFileName().equals(update.getFileName()));
                 this.configs.add(update.getConfig());
             }
         }
