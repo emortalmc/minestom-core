@@ -14,9 +14,12 @@ import net.minestom.server.adventure.audience.Audiences;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerChatEvent;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ModuleData(name = "chat", softDependencies = {PermissionModule.class, MessagingModule.class}, required = false)
 public final class ChatModule extends Module {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChatModule.class);
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     public ChatModule(@NotNull ModuleEnvironment environment) {
@@ -26,9 +29,14 @@ public final class ChatModule extends Module {
     @Override
     public boolean onLoad() {
         MessagingModule messagingModule = this.moduleManager.getModule(MessagingModule.class);
+
+        if (messagingModule == null || messagingModule.getKafkaProducer() == null) {
+            LOGGER.warn("Not enabling ChatModule, MessagingModule or KafkaProducer is null");
+            return false;
+        }
+
         FriendlyKafkaProducer kafkaProducer = messagingModule.getKafkaProducer();
 
-        if (kafkaProducer == null) return false;
 
         messagingModule.addListener(ChatMessageCreatedMessage.class, message -> {
             ChatMessage chatMessage = message.getMessage();
