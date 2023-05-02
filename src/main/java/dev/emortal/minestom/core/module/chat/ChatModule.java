@@ -28,6 +28,8 @@ public final class ChatModule extends Module {
         MessagingModule messagingModule = this.moduleManager.getModule(MessagingModule.class);
         FriendlyKafkaProducer kafkaProducer = messagingModule.getKafkaProducer();
 
+        if (kafkaProducer == null) return false;
+
         messagingModule.addListener(ChatMessageCreatedMessage.class, message -> {
             ChatMessage chatMessage = message.getMessage();
             Audiences.all().sendMessage(MINI_MESSAGE.deserialize(chatMessage.getMessage()));
