@@ -21,32 +21,30 @@ import java.util.function.Consumer;
 
 /**
  * Increment this version when you make a change to this class. Sync it with Velocity's version where necessary.
+ *
  * @version 1
  */
 @ModuleData(name = "messaging", required = true)
 public final class MessagingModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessagingModule.class);
-    
+
     private static final String KAFKA_HOST = EnvUtils.getOrDefaultUnlessProd("KAFKA_HOST", "127.0.0.1");
     private static final String KAFKA_PORT = EnvUtils.getOrDefaultUnlessProd("KAFKA_PORT", "9092");
 
-    private final RabbitMqCore rabbitMqCore;
     private final @Nullable FriendlyKafkaConsumer kafkaConsumer;
     private final @Nullable FriendlyKafkaProducer kafkaProducer;
 
     public MessagingModule(@NotNull ModuleEnvironment environment) {
         super(environment);
 
-        this.rabbitMqCore = new RabbitMqCore();
-
         if (!Environment.isProduction() && !PortUtils.isPortUsed(KAFKA_HOST, Integer.parseInt(KAFKA_PORT))) {
             LOGGER.warn("Kafka is not available, disabling Kafka consumer and producer");
-            
+
             this.kafkaConsumer = null;
             this.kafkaProducer = null;
             return;
         }
-        
+
         KafkaSettings kafkaSettings = new KafkaSettings()
                 .setAutoCommit(true)
                 .setBootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT);
@@ -57,15 +55,10 @@ public final class MessagingModule extends Module {
 
     public <T extends AbstractMessage> void addListener(Class<T> messageType, Consumer<T> listener) {
         MessageProtoConfig<T> parser = ProtoParserRegistry.getParser(messageType);
-        if (parser == null) throw new IllegalArgumentException("No parser found for message type " + messageType.getName());
+        if (parser == null)
+            throw new IllegalArgumentException("No parser found for message type " + messageType.getName());
 
-        switch (parser.service()) {
-            case KAFKA -> {
-                if (this.kafkaConsumer != null) this.kafkaConsumer.addListener(messageType, listener);
-            }
-            case RABBIT_MQ -> this.rabbitMqCore.addListener(messageType, listener);
-            default -> throw new IllegalStateException("Unexpected value: " + parser.service());
-        }
+        if (this.kafkaConsumer != null) this.kafkaConsumer.addListener(messageType, listener);
     }
 
     public FriendlyKafkaProducer getKafkaProducer() {
@@ -80,7 +73,6 @@ public final class MessagingModule extends Module {
 
     @Override
     public void onUnload() {
-        this.rabbitMqCore.shutdown();
         if (this.kafkaConsumer != null) this.kafkaConsumer.close();
         if (this.kafkaProducer != null) this.kafkaProducer.shutdown();
     }
