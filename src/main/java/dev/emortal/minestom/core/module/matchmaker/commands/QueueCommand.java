@@ -114,10 +114,6 @@ public class QueueCommand extends Command {
                                 LOGGER.error("Gamemode " + mode.getFriendlyName() + " is disabled");
                                 yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, Placeholder.unparsed("mode", mode.getFriendlyName()));
                             }
-                            case PARTIES_NOT_ALLOWED -> {
-                                LOGGER.error("Parties are not allowed for gamemode " + mode.getFriendlyName());
-                                yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_PARTIES_NOT_ALLOWED, Placeholder.unparsed("mode", mode.getFriendlyName()));
-                            }
                             default -> {
                                 LOGGER.error("An unknown error occurred while queuing for " + mode.getFriendlyName(), throwable);
                                 yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, Placeholder.unparsed("mode", mode.getFriendlyName()));
