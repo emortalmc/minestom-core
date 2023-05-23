@@ -1,4 +1,4 @@
-package dev.emortal.minestom.core.module.core.command;
+package dev.emortal.minestom.core.module.core.badge;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.InvalidProtocolBufferException;

@@ -48,11 +48,15 @@ public class ArgumentBadge {
             return;
         }
 
+        if (input.length() == 1 && input.charAt(0) == 0) {
+            input = "";
+        }
+
         if (this.onlyOwned) {
             Player player = (Player) sender;
-            handleOwnedBadgesSuggestion(player, input, suggestion);
+            this.handleOwnedBadgesSuggestion(player, input, suggestion);
         } else {
-            handleDefaultSuggestion(input, suggestion);
+            this.handleDefaultSuggestion(input, suggestion);
         }
     }
 

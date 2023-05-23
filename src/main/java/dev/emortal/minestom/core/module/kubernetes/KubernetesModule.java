@@ -93,6 +93,18 @@ public final class KubernetesModule extends Module {
                 this.sdk.setLabel(label, new IgnoredStreamObserver<>());
                 LOGGER.info("Set Agones label {} to {}", label.getKey(), label.getValue());
             }
+
+            this.sdk.setAnnotation(AgonesSDKProto.KeyValue.newBuilder()
+                            .setKey("emc-protocol-version")
+                            .setValue(String.valueOf(MinecraftServer.PROTOCOL_VERSION)).build(),
+                    new IgnoredStreamObserver<>());
+            this.sdk.setAnnotation(AgonesSDKProto.KeyValue.newBuilder()
+                            .setKey("emc-version-name")
+                            .setValue(MinecraftServer.VERSION_NAME).build(),
+                    new IgnoredStreamObserver<>());
+
+            LOGGER.info("Set Agones version annotations. [protocol={}, version={}]",
+                    MinecraftServer.PROTOCOL_VERSION, MinecraftServer.VERSION_NAME);
         }
         return true;
     }

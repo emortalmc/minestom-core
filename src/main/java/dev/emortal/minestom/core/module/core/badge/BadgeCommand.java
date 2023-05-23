@@ -1,4 +1,4 @@
-package dev.emortal.minestom.core.module.core.command;
+package dev.emortal.minestom.core.module.core.badge;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -29,6 +29,9 @@ public class BadgeCommand extends Command {
 
     public BadgeCommand() {
         super("badge");
+
+        this.setCondition(Conditions::playerOnly);
+        this.setDefaultExecutor((sender, context) -> new BadgeGui((Player) sender));
 
         ArgumentLiteral setArgument = new ArgumentLiteral("set");
         ArgumentWord badgeArgument = ArgumentBadge.create(this.badgeManager, "badge", true);
