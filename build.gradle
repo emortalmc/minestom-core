@@ -21,12 +21,12 @@ repositories {
 
 dependencies {
     // Minestom
-    implementation("dev.hollowcube:minestom-ce:7f3144337d")
+    api("dev.hollowcube:minestom-ce:7f3144337d")
     implementation("net.kyori:adventure-text-minimessage:4.13.0")
 
     // Logger
-    implementation('ch.qos.logback:logback-classic:1.4.7')
-    implementation('net.logstash.logback:logstash-logback-encoder:7.3')
+    implementation("ch.qos.logback:logback-classic:1.4.7")
+    implementation("net.logstash.logback:logstash-logback-encoder:7.3")
 
     // APIs
     api("dev.emortal.api:agones-sdk:1.0.5")
