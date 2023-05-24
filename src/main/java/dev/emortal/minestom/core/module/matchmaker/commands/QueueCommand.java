@@ -21,12 +21,15 @@ import net.minestom.server.command.builder.arguments.ArgumentStringArray;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Stream;
 
 public class QueueCommand extends Command {
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueueCommand.class);
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     private final MatchmakerGrpc.MatchmakerFutureStub matchmaker;

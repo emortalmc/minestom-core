@@ -23,22 +23,27 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class MinestomServer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MinestomServer.class);
+    private final Logger logger;
 
     private static final String DEFAULT_ADDRESS = "0.0.0.0";
     private static final String DEFAULT_PORT = "25565";
 
     public MinestomServer(Builder builder) {
+        String logbackConfigFile = Environment.isProduction() ? "logback-prod.xml" : "logback-dev.xml";
+        System.setProperty("logback.configurationFile", logbackConfigFile);
+
+        this.logger = LoggerFactory.getLogger(MinestomServer.class);
+
         MinecraftServer server = MinecraftServer.init();
         MinecraftServer.setCompressionThreshold(0);
         this.tryEnableVelocity();
 
         if (builder.mojangAuth) {
-            LOGGER.info("Enabling Mojang authentication");
+            logger.info("Enabling Mojang authentication");
             MojangAuth.init();
         }
 
-        LOGGER.info("Starting server at {}:{}", builder.address, builder.port);
+        logger.info("Starting server at {}:{}", builder.address, builder.port);
 
         EventNode<Event> modulesNode = EventNode.all("modules");
         MinecraftServer.getGlobalEventHandler().addChild(modulesNode);
@@ -52,11 +57,11 @@ public final class MinestomServer {
     private void tryEnableVelocity() {
         String forwardingSecret = Builder.getValue("minestom.velocity-forwarding-secret", null);
         if (forwardingSecret == null) {
-            LOGGER.warn("Not enabling Velocity forwarding, no secret was provided");
+            logger.warn("Not enabling Velocity forwarding, no secret was provided");
             return;
         }
 
-        LOGGER.info("Enabling Velocity forwarding");
+        logger.info("Enabling Velocity forwarding");
 
         VelocityProxy.enable(forwardingSecret);
     }
@@ -106,10 +111,7 @@ public final class MinestomServer {
         }
 
         public Builder module(Class<? extends Module> clazz, ModuleCreator moduleCreator) {
-            LoadableModule deleted = this.modules.put(clazz, new LoadableModule(clazz, moduleCreator));
-            if (deleted != null) {
-                LOGGER.info("Module {} was already registered, overwriting", clazz.getSimpleName());
-            }
+            this.modules.put(clazz, new LoadableModule(clazz, moduleCreator));
 
             return this;
         }
