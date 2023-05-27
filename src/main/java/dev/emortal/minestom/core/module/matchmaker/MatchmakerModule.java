@@ -17,6 +17,7 @@ import dev.emortal.minestom.core.module.matchmaker.session.MatchmakingSession;
 import dev.emortal.minestom.core.module.matchmaker.session.MatchmakingSessionManager;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.command.CommandManager;
 import net.minestom.server.entity.Player;
 import org.apache.commons.lang3.function.TriFunction;
 import org.jetbrains.annotations.NotNull;
@@ -65,8 +66,9 @@ public final class MatchmakerModule extends Module {
             return false;
         }
 
-        MinecraftServer.getCommandManager().register(new QueueCommand(this.matchmakerStub, gameModeCollection.get()));
-        MinecraftServer.getCommandManager().register(new DequeueCommand(this.matchmakerStub));
+        CommandManager commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(new QueueCommand(this.matchmakerStub, gameModeCollection.get()));
+        commandManager.register(new DequeueCommand(this.matchmakerStub));
 
         this.matchmakingSessionManager = new MatchmakingSessionManager(
                 this.eventNode, this.matchmakerStub, this.messaging, gameModeCollection.get(), this.sessionCreator

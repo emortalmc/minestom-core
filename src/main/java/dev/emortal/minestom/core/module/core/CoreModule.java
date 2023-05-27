@@ -28,7 +28,6 @@ public final class CoreModule extends Module {
         });
 
         CommandManager commandManager = MinecraftServer.getCommandManager();
-
         commandManager.register(new PerformanceCommand(this.eventNode));
         commandManager.register(new BadgeCommand());
         commandManager.register(new BadgeAdminCommand());
@@ -38,6 +37,5 @@ public final class CoreModule extends Module {
 
     @Override
     public void onUnload() {
-
     }
 }

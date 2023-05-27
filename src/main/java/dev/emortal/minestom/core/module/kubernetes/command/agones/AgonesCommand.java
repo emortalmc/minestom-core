@@ -26,11 +26,17 @@ public class AgonesCommand extends Command {
 //        this.addSyntax(alphaSubs::executePlayerDisconnect, new ArgumentLiteral("set"), new ArgumentLiteral("disconnected"), new ArgumentUUID("playerId"));
 
         SdkSubs sdkSubs = new SdkSubs(this.kubernetesModule.getSdk());
-        this.addSyntax(sdkSubs::executeGetGameServer, new ArgumentLiteral("get"), new ArgumentLiteral("gameserver"));
+
+        ArgumentLiteral get = new ArgumentLiteral("get");
+        ArgumentLiteral set = new ArgumentLiteral("set");
+        ArgumentString key = new ArgumentString("key");
+        ArgumentString metaValue = new ArgumentString("metaValue");
+
+        this.addSyntax(sdkSubs::executeGetGameServer, get, new ArgumentLiteral("gameserver"));
         this.addSyntax(sdkSubs::executeReserve, new ArgumentLiteral("reserve"), new ArgumentTime("duration"));
         this.addSyntax(sdkSubs::executeAllocate, new ArgumentLiteral("allocate"));
-        this.addSyntax(sdkSubs::executeSetAnnotation, new ArgumentLiteral("set"), new ArgumentLiteral("annotation"), new ArgumentString("key"), new ArgumentString("value"));
-        this.addSyntax(sdkSubs::executeSetLabel, new ArgumentLiteral("set"), new ArgumentLiteral("label"), new ArgumentString("key"), new ArgumentString("value"));
+        this.addSyntax(sdkSubs::executeSetAnnotation, set, new ArgumentLiteral("annotation"), key, metaValue);
+        this.addSyntax(sdkSubs::executeSetLabel, set, new ArgumentLiteral("label"), key, metaValue);
         this.addSyntax(sdkSubs::executeShutdown, new ArgumentLiteral("shutdown"));
         this.addSyntax(sdkSubs::executeWatchGameserver, new ArgumentLiteral("watch"), new ArgumentLiteral("gameserver"));
     }

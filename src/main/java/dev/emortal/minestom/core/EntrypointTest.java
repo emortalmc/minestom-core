@@ -2,6 +2,7 @@ package dev.emortal.minestom.core;
 
 import dev.emortal.minestom.core.module.monitoring.MonitoringModule;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.command.CommandManager;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentWord;
 import net.minestom.server.command.builder.arguments.minecraft.ArgumentEntity;
@@ -43,7 +44,8 @@ public final class EntrypointTest {
         testPermsCmd.setCondition((sender, commandName) -> sender.hasPermission("command.testperms"));
         testPermsCmd.setDefaultExecutor((sender, context) -> sender.sendMessage("works :)"));
 
-        MinecraftServer.getCommandManager().register(command);
-        MinecraftServer.getCommandManager().register(testPermsCmd);
+        CommandManager commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(command);
+        commandManager.register(testPermsCmd);
     }
 }

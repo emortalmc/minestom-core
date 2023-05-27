@@ -21,7 +21,8 @@ repositories {
 
 dependencies {
     // Minestom
-    api("dev.hollowcube:minestom-ce:7f3144337d")
+//    api("dev.hollowcube:minestom-ce:6f11e42d46")
+    api("com.github.hollow-cube:minestom-ce:6f11e42d46")
     implementation("net.kyori:adventure-text-minimessage:4.13.0")
 
     // Logger

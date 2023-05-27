@@ -122,7 +122,7 @@ public class SdkSubs {
 
     public void executeSetAnnotation(CommandSender sender, CommandContext context) {
         String key = context.get("key");
-        String value = context.get("value");
+        String value = context.get("metaValue");
         this.sdk.setAnnotation(AgonesSDKProto.KeyValue.newBuilder().setKey(key).setValue(value).build(), new StreamObserver<>() {
             @Override
             public void onNext(AgonesSDKProto.Empty value) {
@@ -158,7 +158,7 @@ public class SdkSubs {
 
     public void executeSetLabel(CommandSender commandSender, CommandContext context) {
         String key = context.get("key");
-        String value = context.get("value");
+        String value = context.get("metaValue");
         this.sdk.setLabel(AgonesSDKProto.KeyValue.newBuilder().setKey(key).setValue(value).build(), new StreamObserver<>() {
             @Override
             public void onNext(AgonesSDKProto.Empty value) {

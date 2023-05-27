@@ -40,7 +40,7 @@ public final class ChatModule extends Module {
 
         messagingModule.addListener(ChatMessageCreatedMessage.class, message -> {
             ChatMessage chatMessage = message.getMessage();
-            Audiences.all().sendMessage(MINI_MESSAGE.deserialize(chatMessage.getMessage()));
+            Audiences.players().sendMessage(MINI_MESSAGE.deserialize(chatMessage.getMessage()));
         });
 
         this.eventNode.addListener(PlayerChatEvent.class, event -> {
