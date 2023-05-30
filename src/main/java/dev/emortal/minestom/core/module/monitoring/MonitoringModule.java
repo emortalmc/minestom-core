@@ -21,15 +21,19 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.Objects;
 
 @ModuleData(name = "monitoring", required = false)
 public final class MonitoringModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(MonitoringModule.class);
-    private final @NotNull String serviceName;
+    private static final @NotNull String FLEET_NAME;
 
-    public MonitoringModule(@NotNull ModuleEnvironment environment, @NotNull String serviceName) {
+    static {
+        FLEET_NAME = Objects.requireNonNullElse(System.getenv("FLEET_NAME"), "unknown");
+    }
+
+    public MonitoringModule(@NotNull ModuleEnvironment environment) {
         super(environment);
-        this.serviceName = serviceName;
     }
 
     @Override
@@ -40,19 +44,22 @@ public final class MonitoringModule extends Module {
             return false;
         }
 
-        LOGGER.info("Starting monitoring with: [serviceName={}, server={}]", this.serviceName, Environment.getHostname());
+        LOGGER.info("Starting monitoring with: [fleet={}, server={}]", FLEET_NAME, Environment.getHostname());
         PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         registry.config()
                 .meterFilter(new PrometheusRenameFilter())
-                .commonTags("service", this.serviceName);
+                .commonTags("fleet", FLEET_NAME);
 
         if (Environment.isProduction()) registry.config().commonTags("server", Environment.getHostname());
 
+        // Java
         new ClassLoaderMetrics().bindTo(registry);
-        new JvmMemoryMetrics().bindTo(registry);
         new JvmGcMetrics().bindTo(registry);
-        new ProcessorMetrics().bindTo(registry);
+        new JvmMemoryMetrics().bindTo(registry);
         new JvmThreadMetrics().bindTo(registry);
+        // Proc
+        new ProcessorMetrics().bindTo(registry);
+        // Custom
         new MinestomMetrics(this.eventNode).bindTo(registry);
 
         // Add the registry globally so that it can be used by other modules without having to pass it around

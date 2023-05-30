@@ -20,7 +20,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -42,7 +41,7 @@ public class MinestomMetrics implements MeterBinder {
                 .description("The amount of players currently online")
                 .register(registry);
 
-        Gauge.builder("minestom.instances", MinecraftServer.getInstanceManager().getInstances(), Set::size)
+        Gauge.builder("minestom.instances", () -> MinecraftServer.getInstanceManager().getInstances().size())
                 .description("The amount of instances currently loaded")
                 .register(registry);
 

@@ -20,7 +20,7 @@ public final class EntrypointTest {
                 .port(25565)
                 .mojangAuth(true)
                 .commonModules()
-                .module(MonitoringModule.class, env -> new MonitoringModule(env, "core-test"))
+                .module(MonitoringModule.class, MonitoringModule::new)
                 .build();
 
         Instance instance = MinecraftServer.getInstanceManager().createInstanceContainer();
