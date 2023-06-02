@@ -101,14 +101,17 @@ public class QueueCommand extends Command {
 
                         player.sendMessage(switch (errorResponse.getReason()) {
                             case ALREADY_IN_QUEUE -> CommonMatchmakerError.QUEUE_ERR_ALREADY_IN_QUEUE;
+                            case NO_PERMISSION ->
+                                    MINI_MESSAGE.deserialize(CommonMatchmakerError.PLAYER_PERMISSION_DENIED);
                             case INVALID_MAP -> {
                                 LOGGER.error("Invalid map for gamemode " + mode.getFriendlyName());
                                 yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, Placeholder.unparsed("mode", mode.getFriendlyName()));
                             }
-                            case PARTY_TOO_LARGE -> MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_PARTY_TOO_LARGE,
-                                    Placeholder.unparsed("mode", mode.getFriendlyName()),
-                                    Placeholder.unparsed("max", String.valueOf(mode.getPartyRestrictions().getMaxSize()))
-                            );
+                            case PARTY_TOO_LARGE ->
+                                    MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_PARTY_TOO_LARGE,
+                                            Placeholder.unparsed("mode", mode.getFriendlyName()),
+                                            Placeholder.unparsed("max", String.valueOf(mode.getPartyRestrictions().getMaxSize()))
+                                    );
                             case INVALID_GAME_MODE -> {
                                 LOGGER.error("Invalid gamemode " + mode.getFriendlyName());
                                 yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, Placeholder.unparsed("mode", mode.getFriendlyName()));
