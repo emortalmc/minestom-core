@@ -61,6 +61,7 @@ public final class MonitoringModule extends Module {
         new ProcessorMetrics().bindTo(registry);
         // Custom
         new MinestomMetrics(this.eventNode).bindTo(registry);
+        new MinestomPacketMetrics(this.eventNode).bindTo(registry);
 
         // Add the registry globally so that it can be used by other modules without having to pass it around
         Metrics.addRegistry(registry);
