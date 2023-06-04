@@ -14,6 +14,11 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.micrometer.prometheus.PrometheusRenameFilter;
+import io.pyroscope.http.Format;
+import io.pyroscope.javaagent.EventType;
+import io.pyroscope.javaagent.PyroscopeAgent;
+import io.pyroscope.javaagent.config.Config;
+import io.pyroscope.labels.Pyroscope;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Objects;
 
 @ModuleData(name = "monitoring", required = false)
@@ -51,6 +57,30 @@ public final class MonitoringModule extends Module {
                 .commonTags("fleet", FLEET_NAME);
 
         if (Environment.isProduction()) registry.config().commonTags("server", Environment.getHostname());
+
+        if (Environment.isProduction()) {
+            String pyroscopeAddress = System.getenv("PYROSCOPE_SERVER_ADDRESS");
+            if (pyroscopeAddress == null) {
+                LOGGER.warn("PYROSCOPE_SERVER_ADDRESS is not set, Pyroscope will not be enabled");
+            } else {
+                Pyroscope.setStaticLabels(Map.of(
+                                "fleet", FLEET_NAME,
+                                "pod", Environment.getHostname()
+                        )
+                );
+
+                PyroscopeAgent.start(
+                        new PyroscopeAgent.Options.Builder(
+                                new Config.Builder()
+                                        .setApplicationName(FLEET_NAME)
+                                        .setProfilingEvent(EventType.ITIMER)
+                                        .setFormat(Format.JFR)
+                                        .setServerAddress(pyroscopeAddress)
+                                        .build()
+                        ).build()
+                );
+            }
+        }
 
         // Java
         new ClassLoaderMetrics().bindTo(registry);
