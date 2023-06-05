@@ -1,22 +1,22 @@
 plugins {
-    id("java-library")
-    id("maven-publish")
-
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("com.github.evestera.depsize") version "0.1.0"
+
+    `java-library`
+    `maven-publish`
 }
 
-group "dev.emortal.minestom.core"
-version "1.0-SNAPSHOT"
+group = "dev.emortal.minestom.core"
+version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
     mavenLocal()
 
-    maven { url = "https://packages.confluent.io/maven/" }
-    maven { url = "https://repo.emortal.dev/snapshots" }
-    maven { url = "https://repo.emortal.dev/releases" }
-    maven { url = "https://jitpack.io" }
+    maven("https://packages.confluent.io/maven/")
+    maven("https://repo.emortal.dev/snapshots")
+    maven("https://repo.emortal.dev/releases")
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -54,12 +54,14 @@ java {
     }
 }
 
-test {
-    useJUnitPlatform()
-}
+tasks {
+    test {
+        useJUnitPlatform()
+    }
 
-shadowJar {
-    mergeServiceFiles()
+    shadowJar {
+        mergeServiceFiles()
+    }
 }
 
 publishing {
@@ -83,15 +85,15 @@ publishing {
     }
 
     publications {
-        maven(MavenPublication) {
+        create<MavenPublication>("maven") {
             groupId = "dev.emortal.minestom"
             artifactId = "core"
 
-            def commitHash = System.getenv("COMMIT_HASH_SHORT")
-            def releaseVersion = System.getenv("RELEASE_VERSION")
+            val commitHash = System.getenv("COMMIT_HASH_SHORT")
+            val releaseVersion = System.getenv("RELEASE_VERSION")
             version = commitHash ?: releaseVersion ?: "local"
 
-            from components.java
+            from(components["java"])
         }
     }
 }
