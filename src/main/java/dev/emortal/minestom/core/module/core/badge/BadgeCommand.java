@@ -37,6 +37,8 @@ public class BadgeCommand extends Command {
         ArgumentWord badgeArgument = ArgumentBadge.create(this.badgeManager, "badge", true);
 
         this.addConditionalSyntax(Conditions::playerOnly, this::executeSetCurrentBadge, setArgument, badgeArgument);
+
+        this.addSubcommand(new BadgeAdminSubcommand(badgeManager));
     }
 
     private void executeSetCurrentBadge(CommandSender sender, CommandContext context) {

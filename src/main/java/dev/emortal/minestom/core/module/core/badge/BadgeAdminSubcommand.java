@@ -25,13 +25,14 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 
-public class BadgeAdminCommand extends Command {
-    private static final Logger LOGGER = LoggerFactory.getLogger(BadgeAdminCommand.class);
+public class BadgeAdminSubcommand extends Command {
+    private static final Logger LOGGER = LoggerFactory.getLogger(BadgeAdminSubcommand.class);
 
-    private final BadgeManagerGrpc.BadgeManagerFutureStub badgeManager = GrpcStubCollection.getBadgeManagerService().orElse(null);
+    private final BadgeManagerGrpc.BadgeManagerFutureStub badgeManager;
 
-    public BadgeAdminCommand() {
-        super("badgeadmin");
+    public BadgeAdminSubcommand(BadgeManagerGrpc.BadgeManagerFutureStub badgeManager) {
+        super("admin");
+        this.badgeManager = badgeManager;
 
         this.setCondition((sender, commandString) -> sender.hasPermission("command.badge.admin"));
 
@@ -47,7 +48,6 @@ public class BadgeAdminCommand extends Command {
 
         this.addSyntax(this::executeRemoveBadgeFromPlayer, removeArgument, playerArgument, badgeArgument);
     }
-
 
     private void executeAddBadgeToPlayer(CommandSender sender, CommandContext context) {
         CompletableFuture<McPlayer> playerFuture = context.get("player");
