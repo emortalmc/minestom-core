@@ -1,15 +1,15 @@
 package dev.emortal.minestom.core.module.messaging;
 
 import com.google.protobuf.AbstractMessage;
+import dev.emortal.api.modules.ModuleData;
+import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.api.utils.kafka.FriendlyKafkaConsumer;
 import dev.emortal.api.utils.kafka.FriendlyKafkaProducer;
 import dev.emortal.api.utils.kafka.KafkaSettings;
 import dev.emortal.api.utils.parser.MessageProtoConfig;
 import dev.emortal.api.utils.parser.ProtoParserRegistry;
 import dev.emortal.minestom.core.Environment;
-import dev.emortal.minestom.core.module.Module;
-import dev.emortal.minestom.core.module.ModuleData;
-import dev.emortal.minestom.core.module.ModuleEnvironment;
+import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.utils.EnvUtils;
 import dev.emortal.minestom.core.utils.PortUtils;
 import org.jetbrains.annotations.NotNull;
@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  * @version 1
  */
 @ModuleData(name = "messaging", required = true)
-public final class MessagingModule extends Module {
+public final class MessagingModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessagingModule.class);
 
     private static final String KAFKA_HOST = EnvUtils.getOrDefaultUnlessProd("KAFKA_HOST", "127.0.0.1");

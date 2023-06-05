@@ -1,9 +1,9 @@
 package dev.emortal.minestom.core.module.core;
 
+import dev.emortal.api.modules.ModuleData;
+import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.api.utils.resolvers.PlayerResolver;
-import dev.emortal.minestom.core.module.Module;
-import dev.emortal.minestom.core.module.ModuleData;
-import dev.emortal.minestom.core.module.ModuleEnvironment;
+import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.core.badge.BadgeCommand;
 import dev.emortal.minestom.core.module.core.command.PerformanceCommand;
 import net.minestom.server.MinecraftServer;
@@ -12,7 +12,7 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 @ModuleData(name = "core", required = false)
-public final class CoreModule extends Module {
+public final class CoreModule extends MinestomModule {
 
     public CoreModule(@NotNull ModuleEnvironment environment) {
         super(environment);

@@ -31,6 +31,7 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:7.3")
 
     // APIs
+    api("dev.emortal.api:module-system:262b4a5")
     api("dev.emortal.api:agones-sdk:1.0.5")
     api("dev.emortal.api:common-proto-sdk:d1d6d4a")
     api("dev.emortal.api:live-config-parser:2b9764c")
@@ -45,6 +46,12 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
 }
 
 test {

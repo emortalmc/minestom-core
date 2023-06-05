@@ -1,9 +1,9 @@
 package dev.emortal.minestom.core.module.liveconfig;
 
 import dev.emortal.api.liveconfigparser.configs.LiveConfigCollection;
-import dev.emortal.minestom.core.module.Module;
-import dev.emortal.minestom.core.module.ModuleData;
-import dev.emortal.minestom.core.module.ModuleEnvironment;
+import dev.emortal.api.modules.Module;
+import dev.emortal.api.modules.ModuleData;
+import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
@@ -19,14 +19,10 @@ import java.util.logging.Level;
 public final class LiveConfigModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(LiveConfigModule.class);
 
-    private final @NotNull ModuleEnvironment env;
-
     private LiveConfigCollection configCollection;
 
-    public LiveConfigModule(ModuleEnvironment environment) {
+    public LiveConfigModule(@NotNull ModuleEnvironment environment) {
         super(environment);
-
-        this.env = environment;
     }
 
     public LiveConfigCollection getConfigCollection() {
@@ -35,7 +31,7 @@ public final class LiveConfigModule extends Module {
 
     @Override
     public boolean onLoad() {
-        KubernetesModule kubernetesModule = this.env.moduleManager().getModule(KubernetesModule.class);
+        KubernetesModule kubernetesModule = this.moduleManager.getModule(KubernetesModule.class);
         ApiClient apiClient = null;
         if (kubernetesModule != null) {
             apiClient = kubernetesModule.getApiClient();

@@ -1,10 +1,11 @@
 package dev.emortal.minestom.core.module.monitoring;
 
 import com.sun.net.httpserver.HttpServer;
+import dev.emortal.api.modules.Module;
+import dev.emortal.api.modules.ModuleData;
+import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.minestom.core.Environment;
-import dev.emortal.minestom.core.module.Module;
-import dev.emortal.minestom.core.module.ModuleData;
-import dev.emortal.minestom.core.module.ModuleEnvironment;
+import dev.emortal.minestom.core.module.MinestomModule;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics;
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
@@ -30,7 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @ModuleData(name = "monitoring", required = false)
-public final class MonitoringModule extends Module {
+public final class MonitoringModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(MonitoringModule.class);
     private static final @NotNull String FLEET_NAME;
 

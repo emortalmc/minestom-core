@@ -1,8 +1,8 @@
 package dev.emortal.minestom.core;
 
-import dev.emortal.minestom.core.module.Module;
-import dev.emortal.minestom.core.module.ModuleEnvironment;
-import dev.emortal.minestom.core.module.ModuleManager;
+import dev.emortal.api.modules.LoadableModule;
+import dev.emortal.api.modules.Module;
+import dev.emortal.api.modules.ModuleManager;
 import dev.emortal.minestom.core.module.chat.ChatModule;
 import dev.emortal.minestom.core.module.core.CoreModule;
 import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
@@ -11,14 +11,11 @@ import dev.emortal.minestom.core.module.matchmaker.MatchmakerModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import dev.emortal.minestom.core.module.permissions.PermissionModule;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.event.Event;
-import net.minestom.server.event.EventNode;
 import net.minestom.server.extras.MojangAuth;
 import net.minestom.server.extras.velocity.VelocityProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,10 +42,7 @@ public final class MinestomServer {
 
         logger.info("Starting server at {}:{}", builder.address, builder.port);
 
-        EventNode<Event> modulesNode = EventNode.all("modules");
-        MinecraftServer.getGlobalEventHandler().addChild(modulesNode);
-
-        ModuleManager moduleManager = new ModuleManager(builder, modulesNode);
+        ModuleManager moduleManager = new ModuleManager(builder.modules);
 
         server.start(builder.address, builder.port);
         moduleManager.onReady();
@@ -110,9 +104,8 @@ public final class MinestomServer {
             return this;
         }
 
-        public Builder module(Class<? extends Module> clazz, ModuleCreator moduleCreator) {
+        public Builder module(Class<? extends Module> clazz, LoadableModule.Creator moduleCreator) {
             this.modules.put(clazz, new LoadableModule(clazz, moduleCreator));
-
             return this;
         }
 
@@ -129,25 +122,5 @@ public final class MinestomServer {
 
             return defaultValue;
         }
-
-        public record LoadableModule(Class<? extends Module> clazz, ModuleCreator creator) {
-        }
-
-        public Map<Class<? extends Module>, LoadableModule> getModules() {
-            return this.modules;
-        }
-
-        public int getPort() {
-            return this.port;
-        }
-
-        public String getAddress() {
-            return this.address;
-        }
-    }
-
-    @FunctionalInterface
-    public interface ModuleCreator {
-        Module create(ModuleEnvironment environment) throws IOException;
     }
 }

@@ -5,11 +5,11 @@ import dev.agones.sdk.SDKGrpc;
 import dev.agones.sdk.alpha.AlphaAgonesSDKProto;
 import dev.emortal.api.agonessdk.AgonesUtils;
 import dev.emortal.api.agonessdk.IgnoredStreamObserver;
+import dev.emortal.api.modules.ModuleData;
+import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.Environment;
-import dev.emortal.minestom.core.module.Module;
-import dev.emortal.minestom.core.module.ModuleData;
-import dev.emortal.minestom.core.module.ModuleEnvironment;
+import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.kubernetes.command.agones.AgonesCommand;
 import dev.emortal.minestom.core.module.kubernetes.command.currentserver.CurrentServerCommand;
 import io.grpc.ManagedChannel;
@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 @ModuleData(name = "kubernetes", required = true)
-public final class KubernetesModule extends Module {
+public final class KubernetesModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(KubernetesModule.class);
 
     private static final boolean KUBERNETES_ENABLED = Environment.isProduction(); // Kubernetes support can only be enabled if run in-cluster

@@ -3,10 +3,10 @@ package dev.emortal.minestom.core.module.chat;
 import dev.emortal.api.message.common.PlayerChatMessageMessage;
 import dev.emortal.api.message.messagehandler.ChatMessageCreatedMessage;
 import dev.emortal.api.model.messagehandler.ChatMessage;
+import dev.emortal.api.modules.ModuleData;
+import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.api.utils.kafka.FriendlyKafkaProducer;
-import dev.emortal.minestom.core.module.Module;
-import dev.emortal.minestom.core.module.ModuleData;
-import dev.emortal.minestom.core.module.ModuleEnvironment;
+import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import dev.emortal.minestom.core.module.permissions.PermissionModule;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ModuleData(name = "chat", softDependencies = {PermissionModule.class, MessagingModule.class}, required = false)
-public final class ChatModule extends Module {
+public final class ChatModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatModule.class);
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 

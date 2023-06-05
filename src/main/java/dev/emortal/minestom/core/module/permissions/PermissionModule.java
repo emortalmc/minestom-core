@@ -1,11 +1,11 @@
 package dev.emortal.minestom.core.module.permissions;
 
 import dev.emortal.api.grpc.permission.PermissionServiceGrpc;
+import dev.emortal.api.modules.ModuleData;
+import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.Environment;
-import dev.emortal.minestom.core.module.Module;
-import dev.emortal.minestom.core.module.ModuleData;
-import dev.emortal.minestom.core.module.ModuleEnvironment;
+import dev.emortal.minestom.core.module.MinestomModule;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerLoginEvent;
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.UUID;
 
 @ModuleData(name = "permissions", required = true)
-public final class PermissionModule extends Module {
+public final class PermissionModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionModule.class);
 
     private static final boolean ENABLED;
