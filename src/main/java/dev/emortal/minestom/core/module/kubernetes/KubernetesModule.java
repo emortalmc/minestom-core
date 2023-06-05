@@ -111,8 +111,13 @@ public final class KubernetesModule extends MinestomModule {
 
     @Override
     public void onUnload() {
-        if (AGONES_SDK_ENABLED)
-            AgonesUtils.shutdownHealthTask();
+        if (AGONES_SDK_ENABLED) unloadAgones();
+    }
+
+    private void unloadAgones() {
+        LOGGER.info("Marking server as shutdown for Agones");
+        AgonesUtils.shutdownHealthTask();
+        this.sdk.shutdown(AgonesSDKProto.Empty.getDefaultInstance(), new IgnoredStreamObserver<>());
     }
 
     @Override

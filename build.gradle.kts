@@ -31,7 +31,7 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:7.3")
 
     // APIs
-    api("dev.emortal.api:module-system:262b4a5")
+    api("dev.emortal.api:module-system:995092c")
     api("dev.emortal.api:agones-sdk:1.0.5")
     api("dev.emortal.api:common-proto-sdk:d1d6d4a")
     api("dev.emortal.api:live-config-parser:2b9764c")

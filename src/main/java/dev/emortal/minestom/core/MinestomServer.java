@@ -43,6 +43,7 @@ public final class MinestomServer {
         logger.info("Starting server at {}:{}", builder.address, builder.port);
 
         ModuleManager moduleManager = new ModuleManager(builder.modules);
+        MinecraftServer.getSchedulerManager().buildShutdownTask(moduleManager::onUnload);
 
         server.start(builder.address, builder.port);
         moduleManager.onReady();
