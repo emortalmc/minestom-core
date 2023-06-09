@@ -33,7 +33,7 @@ dependencies {
     // APIs
     api("dev.emortal.api:module-system:995092c")
     api("dev.emortal.api:agones-sdk:1.0.5")
-    api("dev.emortal.api:common-proto-sdk:d1d6d4a")
+    api("dev.emortal.api:common-proto-sdk:01d2618")
     api("dev.emortal.api:live-config-parser:2b9764c")
     api("dev.emortal.api:kurushimi-sdk:1c7e886")
 
