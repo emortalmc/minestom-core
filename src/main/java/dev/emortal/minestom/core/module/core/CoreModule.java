@@ -5,7 +5,7 @@ import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.api.utils.resolvers.PlayerResolver;
 import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.core.badge.BadgeCommand;
-import dev.emortal.minestom.core.module.core.command.PerformanceCommand;
+import dev.emortal.minestom.core.module.core.performance.PerformanceCommand;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.entity.Player;

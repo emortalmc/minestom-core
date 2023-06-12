@@ -1,8 +1,10 @@
-package dev.emortal.minestom.core.module.core.command;
+package dev.emortal.minestom.core.module.core.performance;
 
 import dev.emortal.minestom.core.utils.DurationFormatter;
 import dev.emortal.minestom.core.utils.ProgressBar;
 import com.sun.management.GcInfo;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;
@@ -16,7 +18,6 @@ import net.minestom.server.command.builder.CommandContext;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.server.ServerTickMonitorEvent;
-import net.minestom.server.monitoring.TickMonitor;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.management.GarbageCollectorMXBean;
@@ -28,23 +29,65 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PerformanceCommand extends Command {
+    private static final long SECONDS_IN_NANO = 1_000_000_000L;
+    private static final int TPS = MinecraftServer.TICK_PER_SECOND;
+    private static final BigDecimal TPS_BASE = new BigDecimal(SECONDS_IN_NANO).multiply(new BigDecimal(TPS));
+
+    private static final Component VALUE_SEPARATOR = Component.text(", ");
     private static final Set<Pattern> EXCLUDED_MEMORY_SPACES = Stream.of("Metaspace", "Compressed Class Space", "^CodeHeap")
             .map(Pattern::compile).collect(Collectors.toUnmodifiableSet());
 
-    private final AtomicReference<TickMonitor> lastTick = new AtomicReference<>();
+    private final TpsRollingAverage tps5s = new TpsRollingAverage(5);
+    private final TpsRollingAverage tps15s = new TpsRollingAverage(15);
+    private final TpsRollingAverage tps1m = new TpsRollingAverage(60);
+    private final TpsRollingAverage tps5m = new TpsRollingAverage(60 * 5);
+    private final TpsRollingAverage tps15m = new TpsRollingAverage(60 * 15);
+    private final TpsRollingAverage[] tpsAverages = {tps5s, tps15s, tps1m, tps5m, tps15m};
+
+    private final RollingAverage mspt5s = new RollingAverage(TPS * 5);
+    private final RollingAverage mspt15s = new RollingAverage(TPS * 15);
+    private final RollingAverage mspt1m = new RollingAverage(TPS * 60);
+    private final RollingAverage mspt5m = new RollingAverage(TPS * 60 * 5);
+    private final RollingAverage mspt15m = new RollingAverage(TPS * 60 * 15);
+    private final RollingAverage[] msptAverages = {mspt5s, mspt15s, mspt1m, mspt5m, mspt15m};
+
+    private long lastTickTime;
 
     public PerformanceCommand(EventNode<Event> eventNode) {
         super("performance");
 
-        eventNode.addListener(ServerTickMonitorEvent.class, event -> this.lastTick.set(event.getTickMonitor()));
+        eventNode.addListener(ServerTickMonitorEvent.class, event -> onTick(event.getTickMonitor().getTickTime()));
 
         this.addSyntax(this::onExecute);
+    }
+
+    private void onTick(double tickTime) {
+        if (lastTickTime == 0) {
+            lastTickTime = System.nanoTime();
+            return;
+        }
+
+        final long now = System.nanoTime();
+        final long difference = now - lastTickTime;
+        if (difference <= SECONDS_IN_NANO) return;
+
+        final BigDecimal currentTps = TPS_BASE.divide(new BigDecimal(difference), 30, RoundingMode.HALF_UP);
+        final BigDecimal total = currentTps.multiply(new BigDecimal(difference));
+
+        for (final TpsRollingAverage average : tpsAverages) {
+            average.addSample(currentTps, difference, total);
+        }
+        lastTickTime = now;
+
+        final BigDecimal duration = new BigDecimal(tickTime);
+        for (final RollingAverage average : msptAverages) {
+            average.addSample(duration);
+        }
     }
 
     private void onExecute(@NotNull CommandSender sender, @NotNull CommandContext context) {
@@ -54,13 +97,6 @@ public class PerformanceCommand extends Command {
         long freeMem = Runtime.getRuntime().freeMemory() / 1024 / 1024;
         long ramUsage = totalMem - freeMem;
         float ramPercent = (float) ramUsage / (float) totalMem;
-
-        TickMonitor monitor = this.lastTick.get();
-        double tickMs = monitor.getTickTime();
-        double tps = Math.min(MinecraftServer.TICK_PER_SECOND, Math.floor(1000 / tickMs));
-
-        float lerpDiv = (float) (tps / MinecraftServer.TICK_PER_SECOND);
-        TextColor tpsColor = TextColor.lerp(lerpDiv, NamedTextColor.RED, NamedTextColor.GREEN);
 
         sender.sendMessage(
                 Component.text()
@@ -73,14 +109,48 @@ public class PerformanceCommand extends Command {
                         .append(this.createGcComponent())
                         .append(Component.newline())
 
-                        .append(Component.text("\nTPS: ", NamedTextColor.GRAY))
-                        .append(Component.text(tps, tpsColor))
-
-                        .append(Component.text(" | ", NamedTextColor.DARK_GRAY))
-
-                        .append(Component.text("MSPT: ", NamedTextColor.GRAY))
-                        .append(Component.text(String.format("%sms\n", Math.floor(tickMs * 100) / 100), NamedTextColor.GREEN))
+                        .append(Component.text("\nTPS (5s, 15s, 1m, 5m, 15m): ", NamedTextColor.GRAY))
+                        .append(getTpsInfo(tpsAverages))
+                        .append(Component.newline())
+                        .append(Component.text("MSPT (5s, 15s, 1m, 5m, 15m): ", NamedTextColor.GRAY))
+                        .append(getMsptInfo(msptAverages))
         );
+    }
+
+    private Component getTpsInfo(TpsRollingAverage[] averages) {
+        final TextComponent.Builder builder = Component.text();
+
+        for (int i = 0; i < averages.length; i++) {
+            final double average = averages[i].average();
+            final TextColor color = calculateTpsColor(average);
+            builder.append(Component.text(String.format("%.2f", average), color));
+            if (i < averages.length - 1) builder.append(VALUE_SEPARATOR);
+        }
+
+        return builder.build();
+    }
+
+    private Component getMsptInfo(RollingAverage[] averages) {
+        final TextComponent.Builder builder = Component.text();
+
+        for (int i = 0; i < averages.length; i++) {
+            final double average = averages[i].mean();
+            final TextColor color = calculateMsptColor(average);
+            builder.append(Component.text(String.format("%.2fms", average), color));
+            if (i < averages.length - 1) builder.append(VALUE_SEPARATOR);
+        }
+
+        return builder.build();
+    }
+
+    private TextColor calculateTpsColor(double amount) {
+        float lerpDiv = (float) (amount / TPS);
+        return TextColor.lerp(lerpDiv, NamedTextColor.RED, NamedTextColor.GREEN);
+    }
+
+    private TextColor calculateMsptColor(double average) {
+        final float lerpDiv = (float) (average / MinecraftServer.TICK_MS);
+        return TextColor.lerp(lerpDiv, NamedTextColor.GREEN, NamedTextColor.RED);
     }
 
     private Component createGcComponent() {
