@@ -50,7 +50,7 @@ public final class MinestomServer {
     }
 
     private void tryEnableVelocity() {
-        String forwardingSecret = Builder.getValue("minestom.velocity-forwarding-secret", null);
+        String forwardingSecret = System.getenv("VELOCITY_FORWARDING_SECRET");
         if (forwardingSecret == null) {
             logger.warn("Not enabling Velocity forwarding, no secret was provided");
             return;
