@@ -57,10 +57,6 @@ tasks {
     test {
         useJUnitPlatform()
     }
-
-    shadowJar {
-        mergeServiceFiles()
-    }
 }
 
 publishing {
