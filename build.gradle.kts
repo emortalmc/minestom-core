@@ -1,5 +1,4 @@
 plugins {
-    id("com.github.johnrengelman.shadow") version "7.1.2"
     id("com.github.evestera.depsize") version "0.1.0"
 
     `java-library`
@@ -23,7 +22,7 @@ dependencies {
     // Minestom
 //    api("dev.hollowcube:minestom-ce:6f11e42d46")
     api("com.github.hollow-cube:minestom-ce:8a5c610b7b")
-    implementation("net.kyori:adventure-text-minimessage:4.13.0")
+    api("net.kyori:adventure-text-minimessage:4.13.0")
     implementation("io.pyroscope:agent:0.11.5")
 
     // Logger
