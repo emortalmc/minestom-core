@@ -32,10 +32,10 @@ dependencies {
 
     // APIs
     api("dev.emortal.api:module-system:995092c")
-    api("dev.emortal.api:agones-sdk:1.0.5")
-    api("dev.emortal.api:common-proto-sdk:01d2618")
-    api("dev.emortal.api:live-config-parser:2b9764c")
-    api("dev.emortal.api:kurushimi-sdk:1c7e886")
+    api("dev.emortal.api:agones-sdk:1.0.7")
+    api("dev.emortal.api:common-proto-sdk:920a35c")
+    api("dev.emortal.api:live-config-parser:742c88c")
+    api("dev.emortal.api:kurushimi-sdk:0bb7258")
 
     api("io.kubernetes:client-java:18.0.0")
 
