@@ -6,7 +6,6 @@ import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.Environment;
 import dev.emortal.minestom.core.module.MinestomModule;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.network.player.PlayerConnection;
@@ -43,12 +42,7 @@ public final class PermissionModule extends MinestomModule {
         if (!ENABLED) {
             if (GRANT_ALL_PERMISSIONS) {
                 LOGGER.warn("Permission service is not available, granting all permissions");
-                MinecraftServer.getConnectionManager().setPlayerProvider((uuid, username, connection) -> {
-                    Player player = new AllPermissionPlayer(uuid, username, connection);
-                    player.addPermission(new AllPermission());
-                    return player;
-                });
-                this.eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new AllPermission()));
+                this.eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new Permission("*")));
             } else {
                 LOGGER.warn("Permission service is not available, denying all permissions");
             }
