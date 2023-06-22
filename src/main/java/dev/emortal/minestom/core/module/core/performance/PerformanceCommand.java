@@ -2,6 +2,7 @@ package dev.emortal.minestom.core.module.core.performance;
 
 import dev.emortal.minestom.core.utils.DurationFormatter;
 import dev.emortal.minestom.core.utils.ProgressBar;
+import com.sun.management.GarbageCollectorMXBean;
 import com.sun.management.GcInfo;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -20,7 +21,6 @@ import net.minestom.server.event.EventNode;
 import net.minestom.server.event.server.ServerTickMonitorEvent;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
 import java.time.Duration;
@@ -58,12 +58,12 @@ public class PerformanceCommand extends Command {
 
     private long lastTickTime;
 
-    public PerformanceCommand(EventNode<Event> eventNode) {
+    public PerformanceCommand(@NotNull EventNode<Event> eventNode) {
         super("performance");
 
         eventNode.addListener(ServerTickMonitorEvent.class, event -> onTick(event.getTickMonitor().getTickTime()));
 
-        this.addSyntax(this::onExecute);
+        addSyntax(this::onExecute);
     }
 
     private void onTick(double tickTime) {
@@ -144,7 +144,7 @@ public class PerformanceCommand extends Command {
     }
 
     private TextColor calculateTpsColor(double amount) {
-        float lerpDiv = (float) (amount / TPS);
+        final float lerpDiv = (float) (amount / TPS);
         return TextColor.lerp(lerpDiv, NamedTextColor.RED, NamedTextColor.GREEN);
     }
 
@@ -154,16 +154,15 @@ public class PerformanceCommand extends Command {
     }
 
     private Component createGcComponent() {
-        TextComponent.Builder builder = Component.text()
-                .append(Component.text("GC Info:", NamedTextColor.GRAY));
+        final TextComponent.Builder builder = Component.text().append(Component.text("GC Info:", NamedTextColor.GRAY));
 
-        for (Map.Entry<String, GcInfo> entry : this.getGcInfo().entrySet()) {
-            TextComponent.Builder entryBuilder = Component.text();
-            String lastRunText;
+        for (final var entry : getGcInfo().entrySet()) {
+            final TextComponent.Builder entryBuilder = Component.text();
+            final String lastRunText;
             if (entry.getValue() == null) {
                 lastRunText = "never";
             } else {
-                long millisSinceRun = this.getUptime() - entry.getValue().getEndTime();
+                final long millisSinceRun = this.getUptime() - entry.getValue().getEndTime();
                 lastRunText = entry.getValue() == null ? "never" : DurationFormatter.ofGreatestUnit(Duration.ofMillis(millisSinceRun)) + " ago";
             }
 
@@ -171,8 +170,9 @@ public class PerformanceCommand extends Command {
                     .append(Component.text("\n    Last Run: ", NamedTextColor.GRAY))
                     .append(Component.text(lastRunText, NamedTextColor.GOLD));
 
-            if (entry.getValue() != null)
+            if (entry.getValue() != null) {
                 entryBuilder.hoverEvent(HoverEvent.showText(this.createGcHover(entry.getKey(), entry.getValue())));
+            }
 
             builder.append(entryBuilder);
         }
@@ -181,7 +181,7 @@ public class PerformanceCommand extends Command {
     }
 
     private Component createGcHover(String name, GcInfo info) {
-        TextComponent.Builder builder = Component.text()
+        return Component.text()
                 .append(Component.text("Name: ", NamedTextColor.GOLD))
                 .append(Component.text(name, NamedTextColor.GRAY))
                 .append(Component.newline())
@@ -192,21 +192,22 @@ public class PerformanceCommand extends Command {
 
                 .append(Component.text("Memory After:", NamedTextColor.GOLD))
                 .append(Component.newline())
-                .append(this.createMemoryUsagePeriod(info.getMemoryUsageAfterGc()))
+                .append(createMemoryUsagePeriod(info.getMemoryUsageAfterGc()))
                 .append(Component.newline(), Component.newline())
 
                 .append(Component.text("Memory Before:", NamedTextColor.GOLD))
                 .append(Component.newline())
-                .append(this.createMemoryUsagePeriod(info.getMemoryUsageBeforeGc()));
-        return builder.build();
+                .append(createMemoryUsagePeriod(info.getMemoryUsageBeforeGc()))
+                .build();
     }
 
     private Component createMemoryUsagePeriod(Map<String, MemoryUsage> memoryUsageMap) {
-        List<Component> lines = new ArrayList<>();
+        final List<Component> lines = new ArrayList<>();
 
-        for (Map.Entry<String, MemoryUsage> entry : memoryUsageMap.entrySet()) {
-            if (EXCLUDED_MEMORY_SPACES.stream().anyMatch(pattern -> pattern.matcher(entry.getKey()).find()))
+        for (final var entry : memoryUsageMap.entrySet()) {
+            if (EXCLUDED_MEMORY_SPACES.stream().anyMatch(pattern -> pattern.matcher(entry.getKey()).find())) {
                 continue;
+            }
 
             lines.add(Component.text().append(Component.text("  " + entry.getKey() + ": ", NamedTextColor.GOLD))
                     .append(Component.text(entry.getValue().getUsed() / 1024 / 1024 + "MB", NamedTextColor.GRAY))
@@ -217,10 +218,10 @@ public class PerformanceCommand extends Command {
     }
 
     private Map<String, GcInfo> getGcInfo() {
-        Map<String, GcInfo> gcInfo = new HashMap<>();
+        final Map<String, GcInfo> gcInfo = new HashMap<>();
 
-        for (GarbageCollectorMXBean garbageCollectorMXBean : ManagementFactory.getGarbageCollectorMXBeans()) {
-            com.sun.management.GarbageCollectorMXBean bean = (com.sun.management.GarbageCollectorMXBean) garbageCollectorMXBean;
+        for (final java.lang.management.GarbageCollectorMXBean garbageCollectorMXBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+            final GarbageCollectorMXBean bean = (GarbageCollectorMXBean) garbageCollectorMXBean;
 
             gcInfo.put(bean.getName(), bean.getLastGcInfo());
         }

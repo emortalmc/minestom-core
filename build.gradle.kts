@@ -30,11 +30,11 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:7.3")
 
     // APIs
-    api("dev.emortal.api:module-system:995092c")
+    api("dev.emortal.api:module-system:0352626")
     api("dev.emortal.api:agones-sdk:1.0.7")
-    api("dev.emortal.api:common-proto-sdk:920a35c")
+    api("dev.emortal.api:common-proto-sdk:f1babdc")
     api("dev.emortal.api:live-config-parser:742c88c")
-    api("dev.emortal.api:kurushimi-sdk:0bb7258")
+    api("dev.emortal.api:kurushimi-sdk:7c90f25")
 
     api("io.kubernetes:client-java:18.0.0")
 

@@ -1,12 +1,12 @@
 package dev.emortal.minestom.core.module.core.badge;
 
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.rpc.Status;
 import dev.emortal.api.grpc.badge.BadgeManagerGrpc;
 import dev.emortal.api.grpc.badge.BadgeManagerProto;
 import dev.emortal.api.utils.GrpcStubCollection;
-import dev.emortal.api.utils.callback.FunctionalFutureCallback;
 import dev.emortal.minestom.core.utils.command.argument.ArgumentBadge;
 import io.grpc.protobuf.StatusProto;
 import net.kyori.adventure.text.Component;
@@ -17,6 +17,7 @@ import net.minestom.server.command.builder.arguments.ArgumentLiteral;
 import net.minestom.server.command.builder.arguments.ArgumentWord;
 import net.minestom.server.command.builder.condition.Conditions;
 import net.minestom.server.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,49 +31,60 @@ public class BadgeCommand extends Command {
     public BadgeCommand() {
         super("badge");
 
-        this.setCondition(Conditions::playerOnly);
-        this.setDefaultExecutor((sender, context) -> new BadgeGui((Player) sender));
+        setCondition(Conditions::playerOnly);
+        setDefaultExecutor((sender, context) -> new BadgeGui((Player) sender));
 
-        ArgumentLiteral setArgument = new ArgumentLiteral("set");
-        ArgumentWord badgeArgument = ArgumentBadge.create(this.badgeManager, "badge", true);
+        final ArgumentLiteral setArgument = new ArgumentLiteral("set");
+        final ArgumentWord badgeArgument = ArgumentBadge.create(badgeManager, "badge", true);
 
-        this.addConditionalSyntax(Conditions::playerOnly, this::executeSetCurrentBadge, setArgument, badgeArgument);
+        addConditionalSyntax(Conditions::playerOnly, this::executeSetCurrentBadge, setArgument, badgeArgument);
 
-        this.addSubcommand(new BadgeAdminSubcommand(badgeManager));
+        addSubcommand(new BadgeAdminSubcommand(badgeManager));
     }
 
     private void executeSetCurrentBadge(CommandSender sender, CommandContext context) {
-        String badgeId = context.get("badge");
-        Player player = (Player) sender;
+        final String badgeId = context.get("badge");
+        final Player player = (Player) sender;
 
-        var setBadgeReqFuture = this.badgeManager.setActivePlayerBadge(BadgeManagerProto.SetActivePlayerBadgeRequest.newBuilder()
+        final var request = BadgeManagerProto.SetActivePlayerBadgeRequest.newBuilder()
                 .setBadgeId(badgeId)
-                .setPlayerId(player.getUuid().toString()).build());
+                .setPlayerId(player.getUuid().toString())
+                .build();
 
-        Futures.addCallback(setBadgeReqFuture, FunctionalFutureCallback.create(
-                        response -> sender.sendMessage(Component.text("Set your badge to " + badgeId)),
-                        throwable -> {
-                            Status status = StatusProto.fromThrowable(throwable);
-                            if (status == null || status.getDetailsCount() == 0) {
-                                LOGGER.error("Failed to set badge", throwable);
-                                return;
-                            }
+        Futures.addCallback(badgeManager.setActivePlayerBadge(request), new SetCurrentBadgeCallback(sender, badgeId), ForkJoinPool.commonPool());
+    }
 
-                            try {
-                                BadgeManagerProto.SetActivePlayerBadgeErrorResponse errorResponse = status.getDetails(0).unpack(BadgeManagerProto.SetActivePlayerBadgeErrorResponse.class);
-                                switch (errorResponse.getReason()) {
-                                    case PLAYER_DOESNT_HAVE_BADGE ->
-                                            sender.sendMessage(Component.text("You don't have that badge"));
-                                    default -> {
-                                        LOGGER.error("Failed to set badge", throwable);
-                                        sender.sendMessage(Component.text("Failed to set badge"));
-                                    }
-                                }
-                            } catch (InvalidProtocolBufferException e) {
-                                LOGGER.error("Failed to set badge", throwable);
-                            }
-                        }
-                ), ForkJoinPool.commonPool()
-        );
+    private record SetCurrentBadgeCallback(@NotNull CommandSender sender,
+                                           @NotNull String badgeId) implements FutureCallback<BadgeManagerProto.SetActivePlayerBadgeResponse> {
+
+        @Override
+        public void onSuccess(@NotNull BadgeManagerProto.SetActivePlayerBadgeResponse result) {
+            sender.sendMessage(Component.text("Set your badge to " + badgeId));
+        }
+
+        @Override
+        public void onFailure(@NotNull Throwable throwable) {
+            final Status status = StatusProto.fromThrowable(throwable);
+            if (status == null || status.getDetailsCount() == 0) {
+                LOGGER.error("Failed to set badge", throwable);
+                return;
+            }
+
+            final BadgeManagerProto.SetActivePlayerBadgeErrorResponse response;
+            try {
+                response = status.getDetails(0).unpack(BadgeManagerProto.SetActivePlayerBadgeErrorResponse.class);
+            } catch (final InvalidProtocolBufferException exception) {
+                LOGGER.error("Failed to set badge", throwable);
+                return;
+            }
+
+            switch (response.getReason()) {
+                case PLAYER_DOESNT_HAVE_BADGE -> sender.sendMessage(Component.text("You don't have that badge"));
+                default -> {
+                    LOGGER.error("Failed to set badge", throwable);
+                    sender.sendMessage(Component.text("Failed to set badge"));
+                }
+            }
+        }
     }
 }

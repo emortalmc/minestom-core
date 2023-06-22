@@ -6,6 +6,7 @@ import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class MatchmakingSession {
+
     protected final @NotNull Player player;
     protected @NotNull Ticket ticket;
 
@@ -34,6 +35,7 @@ public abstract class MatchmakingSession {
     public abstract void destroy();
 
     public enum DeleteReason {
+
         GAME_MODE_DELETED,
         MANUAL_DEQUEUE,
         MATCH_CREATED,

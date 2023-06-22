@@ -30,13 +30,12 @@ import java.util.Optional;
 public final class MatchmakerModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(MatchmakerModule.class);
 
-    private final MatchmakerGrpc.MatchmakerFutureStub matchmakerStub = KurushimiStubCollection.getFutureStub().orElse(null);
+    private final MatchmakerGrpc.MatchmakerFutureStub matchmaker = KurushimiStubCollection.getFutureStub().orElse(null);
 
     private final MessagingModule messaging;
     private final LiveConfigModule liveConfig;
 
-    private final @NotNull TriFunction<Player, GameModeConfig, Ticket, MatchmakingSession> sessionCreator;
-    private MatchmakingSessionManager matchmakingSessionManager;
+    private final TriFunction<Player, GameModeConfig, Ticket, MatchmakingSession> sessionCreator;
 
     public MatchmakerModule(@NotNull ModuleEnvironment environment) {
         this(environment, DefaultMatchmakingSessionImpl::new);
@@ -44,35 +43,31 @@ public final class MatchmakerModule extends MinestomModule {
 
     public MatchmakerModule(@NotNull ModuleEnvironment environment, @NotNull TriFunction<Player, GameModeConfig, Ticket, MatchmakingSession> sessionCreator) {
         super(environment);
+        this.sessionCreator = sessionCreator;
 
         KurushimiUtils.registerParserRegistry();
-
-        this.messaging = environment.moduleManager().getModule(MessagingModule.class);
-        this.liveConfig = environment.moduleManager().getModule(LiveConfigModule.class);
-
-        this.sessionCreator = sessionCreator;
+        this.messaging = getModule(MessagingModule.class);
+        this.liveConfig = getModule(LiveConfigModule.class);
     }
 
     @Override
     public boolean onLoad() {
-        if (this.matchmakerStub == null) {
+        if (matchmaker == null) {
             LOGGER.error("Matchmaker gRPC stub is not present but is required for MatchmakerModule");
             return false;
         }
 
-        Optional<GameModeCollection> gameModeCollection = this.liveConfig.getConfigCollection().gameModes();
+        final Optional<GameModeCollection> gameModeCollection = liveConfig.getConfigCollection().gameModes();
         if (gameModeCollection.isEmpty()) {
             LOGGER.error("GameModeCollection is not present in LiveConfigModule but is required for MatchmakerModule");
             return false;
         }
 
-        CommandManager commandManager = MinecraftServer.getCommandManager();
-        commandManager.register(new QueueCommand(this.matchmakerStub, gameModeCollection.get()));
-        commandManager.register(new DequeueCommand(this.matchmakerStub));
+        final CommandManager commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(new QueueCommand(matchmaker, gameModeCollection.get()));
+        commandManager.register(new DequeueCommand(matchmaker));
 
-        this.matchmakingSessionManager = new MatchmakingSessionManager(
-                this.eventNode, this.matchmakerStub, this.messaging, gameModeCollection.get(), this.sessionCreator
-        );
+        new MatchmakingSessionManager(eventNode, matchmaker, messaging, gameModeCollection.get(), sessionCreator);
 
         return true;
     }

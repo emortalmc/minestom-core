@@ -1,53 +1,44 @@
 package dev.emortal.minestom.core.module.kubernetes.command.agones;
 
 import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
-import dev.emortal.minestom.core.module.kubernetes.command.agones.subs.SdkSubs;
+import dev.emortal.minestom.core.utils.command.ExtraConditions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentLiteral;
 import net.minestom.server.command.builder.arguments.ArgumentString;
 import net.minestom.server.command.builder.arguments.minecraft.ArgumentTime;
+import org.jetbrains.annotations.NotNull;
 
-public class AgonesCommand extends Command {
-    private final KubernetesModule kubernetesModule;
+public final class AgonesCommand extends Command {
 
-    public AgonesCommand(KubernetesModule kubernetesModule) {
+    public AgonesCommand(@NotNull KubernetesModule kubernetesModule) {
         super("magones");
-        this.setCondition((source, command) -> source.hasPermission("command.agones"));
+        setCondition(ExtraConditions.hasPermission("command.agones"));
 
-        this.kubernetesModule = kubernetesModule;
+        final SdkSubCommands sdkSubs = new SdkSubCommands(kubernetesModule.getSdk());
 
-//        AlphaSubs alphaSubs = new AlphaSubs();
-//        this.addSyntax(alphaSubs::executeSetCapacity, new ArgumentLiteral("set"), new ArgumentLiteral("capacity"), new ArgumentInteger("value"));
-//        this.addSyntax(alphaSubs::executeGetConnectedPlayers, new ArgumentLiteral("get"), new ArgumentLiteral("connected"), new ArgumentLiteral("players"));
-//        this.addSyntax(alphaSubs::executeIsPlayerConnected, new ArgumentLiteral("is"), new ArgumentLiteral("connected"), new ArgumentUUID("playerId"));
-//        this.addSyntax(alphaSubs::executePlayerConnect, new ArgumentLiteral("set"), new ArgumentLiteral("connected"), new ArgumentUUID("playerId"));
-//        this.addSyntax(alphaSubs::executePlayerDisconnect, new ArgumentLiteral("set"), new ArgumentLiteral("disconnected"), new ArgumentUUID("playerId"));
+        final ArgumentLiteral get = new ArgumentLiteral("get");
+        final ArgumentLiteral set = new ArgumentLiteral("set");
+        final ArgumentString key = new ArgumentString("key");
+        final ArgumentString metaValue = new ArgumentString("metaValue");
 
-        SdkSubs sdkSubs = new SdkSubs(this.kubernetesModule.getSdk());
-
-        ArgumentLiteral get = new ArgumentLiteral("get");
-        ArgumentLiteral set = new ArgumentLiteral("set");
-        ArgumentString key = new ArgumentString("key");
-        ArgumentString metaValue = new ArgumentString("metaValue");
-
-        this.addSyntax(sdkSubs::executeGetGameServer, get, new ArgumentLiteral("gameserver"));
-        this.addSyntax(sdkSubs::executeReserve, new ArgumentLiteral("reserve"), new ArgumentTime("duration"));
-        this.addSyntax(sdkSubs::executeAllocate, new ArgumentLiteral("allocate"));
-        this.addSyntax(sdkSubs::executeSetAnnotation, set, new ArgumentLiteral("annotation"), key, metaValue);
-        this.addSyntax(sdkSubs::executeSetLabel, set, new ArgumentLiteral("label"), key, metaValue);
-        this.addSyntax(sdkSubs::executeShutdown, new ArgumentLiteral("shutdown"));
-        this.addSyntax(sdkSubs::executeWatchGameserver, new ArgumentLiteral("watch"), new ArgumentLiteral("gameserver"));
+        addSyntax(sdkSubs::executeGetGameServer, get, new ArgumentLiteral("gameserver"));
+        addSyntax(sdkSubs::executeReserve, new ArgumentLiteral("reserve"), new ArgumentTime("duration"));
+        addSyntax(sdkSubs::executeAllocate, new ArgumentLiteral("allocate"));
+        addSyntax(sdkSubs::executeSetAnnotation, set, new ArgumentLiteral("annotation"), key, metaValue);
+        addSyntax(sdkSubs::executeSetLabel, set, new ArgumentLiteral("label"), key, metaValue);
+        addSyntax(sdkSubs::executeShutdown, new ArgumentLiteral("shutdown"));
+        addSyntax(sdkSubs::executeWatchGameserver, new ArgumentLiteral("watch"), new ArgumentLiteral("gameserver"));
     }
 
-    public static Component generateMessage(String sdk, String method, RequestStatus status, String message) {
-        String text = "Agones >> [%s.%s] (%s) %s".formatted(sdk, method, status.name(), message);
-
+    public static Component generateMessage(@NotNull String sdk, @NotNull String method, @NotNull RequestStatus status, @NotNull String message) {
+        final String text = "Agones >> [%s.%s] (%s) %s".formatted(sdk, method, status.name(), message);
         return Component.text(text, status.getColor());
     };
 
     public enum RequestStatus {
+
         NEXT(NamedTextColor.GREEN),
         ERROR(NamedTextColor.RED),
         COMPLETED(NamedTextColor.AQUA);
@@ -58,7 +49,7 @@ public class AgonesCommand extends Command {
             this.color = color;
         }
 
-        public NamedTextColor getColor() {
+        public @NotNull NamedTextColor getColor() {
             return this.color;
         }
     }

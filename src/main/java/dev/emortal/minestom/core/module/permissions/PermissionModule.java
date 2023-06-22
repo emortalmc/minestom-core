@@ -1,6 +1,5 @@
 package dev.emortal.minestom.core.module.permissions;
 
-import dev.emortal.api.grpc.permission.PermissionServiceGrpc;
 import dev.emortal.api.modules.ModuleData;
 import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.api.utils.GrpcStubCollection;
@@ -20,16 +19,9 @@ import java.util.UUID;
 public final class PermissionModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionModule.class);
 
-    private static final boolean ENABLED;
+    private static final boolean ENABLED = Environment.isProduction() || GrpcStubCollection.getPermissionService().isPresent();
     // Grants all permissions if the permission service is not available
-    private static final boolean GRANT_ALL_PERMISSIONS;
-
-    static {
-        ENABLED = Environment.isProduction() || GrpcStubCollection.getPermissionService().isPresent();
-
-        String grantAllString = System.getenv("GRANT_ALL_PERMISSIONS");
-        GRANT_ALL_PERMISSIONS = Boolean.parseBoolean(grantAllString);
-    }
+    private static final boolean GRANT_ALL_PERMISSIONS = Boolean.parseBoolean(System.getenv("GRANT_ALL_PERMISSIONS"));
 
     private PermissionCache permissionCache;
 
@@ -42,7 +34,7 @@ public final class PermissionModule extends MinestomModule {
         if (!ENABLED) {
             if (GRANT_ALL_PERMISSIONS) {
                 LOGGER.warn("Permission service is not available, granting all permissions");
-                this.eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new Permission("*")));
+                eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new Permission("*")));
             } else {
                 LOGGER.warn("Permission service is not available, denying all permissions");
             }
@@ -50,45 +42,15 @@ public final class PermissionModule extends MinestomModule {
             return true;
         }
 
-        PermissionServiceGrpc.PermissionServiceFutureStub permissionService =
-                GrpcStubCollection.getPermissionService().orElse(null);
-
-        this.permissionCache = new PermissionCache(permissionService, this.eventNode);
-
+        permissionCache = new PermissionCache(GrpcStubCollection.getPermissionService().orElse(null), eventNode);
         return true;
     }
 
     @Override
     public void onUnload() {
-
     }
 
     public PermissionCache getPermissionCache() {
         return this.permissionCache;
-    }
-
-    public static class AllPermissionPlayer extends Player {
-
-        public AllPermissionPlayer(@NotNull UUID uuid, @NotNull String username, @NotNull PlayerConnection playerConnection) {
-            super(uuid, username, playerConnection);
-        }
-
-        @Override
-        public boolean hasPermission(@NotNull String permissionName) {
-            return super.hasPermission(new Permission(permissionName));
-        }
-    }
-
-    public static class AllPermission extends Permission {
-
-        public AllPermission() {
-            super("unused");
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            return o instanceof Permission; // Just check if it is a Permission type
-        }
     }
 }

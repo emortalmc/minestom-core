@@ -29,38 +29,36 @@ public final class ChatModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        MessagingModule messagingModule = this.moduleManager.getModule(MessagingModule.class);
+        final MessagingModule messagingModule = getModule(MessagingModule.class);
 
         if (messagingModule == null || messagingModule.getKafkaProducer() == null) {
             LOGGER.warn("Not enabling ChatModule, MessagingModule or KafkaProducer is null");
             return false;
         }
 
-        FriendlyKafkaProducer kafkaProducer = messagingModule.getKafkaProducer();
-
         messagingModule.addListener(ChatMessageCreatedMessage.class, message -> {
-            ChatMessage chatMessage = message.getMessage();
-            Audiences.players().sendMessage(MINI_MESSAGE.deserialize(chatMessage.getMessage(),
-                    Placeholder.unparsed("content", chatMessage.getMessageContent())));
+            final ChatMessage chatMessage = message.getMessage();
+            final var content = Placeholder.unparsed("content", chatMessage.getMessageContent());
+            Audiences.players().sendMessage(MINI_MESSAGE.deserialize(chatMessage.getMessage(), content));
         });
 
-        this.eventNode.addListener(PlayerChatEvent.class, event -> {
+        final FriendlyKafkaProducer kafkaProducer = messagingModule.getKafkaProducer();
+
+        eventNode.addListener(PlayerChatEvent.class, event -> {
             event.setCancelled(true);
 
-            Player player = event.getPlayer();
-            kafkaProducer.produceAndForget(PlayerChatMessageMessage.newBuilder()
-                    .setMessage(
-                            ChatMessage.newBuilder()
-                                    .setMessage(event.getMessage())
-                                    .setSenderId(player.getUuid().toString())
-                                    .setSenderUsername(player.getUsername())
-                    ).build());
+            final Player player = event.getPlayer();
+            final ChatMessage message = ChatMessage.newBuilder()
+                    .setMessage(event.getMessage())
+                    .setSenderId(player.getUuid().toString())
+                    .setSenderUsername(player.getUsername())
+                    .build();
+            kafkaProducer.produceAndForget(PlayerChatMessageMessage.newBuilder().setMessage(message).build());
         });
         return true;
     }
 
     @Override
     public void onUnload() {
-
     }
 }

@@ -15,10 +15,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
 
-public class CurrentServerCommand extends Command {
+public final class CurrentServerCommand extends Command {
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#.##");
-
-    private final PlayerTrackerManager playerTrackerManager;
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     private static final String MESSAGE = """
@@ -30,23 +28,19 @@ public class CurrentServerCommand extends Command {
             Instance: %s
             Position: %s""";
 
-    public CurrentServerCommand(PlayerTrackerManager playerTrackerManager) {
+    public CurrentServerCommand(@NotNull PlayerTrackerManager playerTrackerManager) {
         super("whereami");
 
-        this.playerTrackerManager = playerTrackerManager;
+        setDefaultExecutor((sender, context) -> {
+            final Player player = (Player) sender;
 
-        this.setDefaultExecutor((sender, context) -> {
-            Player player = (Player) sender;
-            this.playerTrackerManager.retrievePlayerServer(player.getUuid(), location -> {
-                sender.sendMessage(MINI_MESSAGE.deserialize(MESSAGE,
-                                Placeholder.unparsed("server_id", location.getServerId()),
-                                Placeholder.unparsed("proxy_id", location.getProxyId()))
-                        .clickEvent(ClickEvent.copyToClipboard(
-                                this.createCopyableData(location, player)
-                        ))
-                        .hoverEvent(HoverEvent.showText(
-                                Component.text("Click to copy", NamedTextColor.GREEN)
-                        ))
+            playerTrackerManager.retrievePlayerServer(player.getUuid(), location -> {
+                final var serverId = Placeholder.unparsed("server_id", location.getServerId());
+                final var proxyId = Placeholder.unparsed("proxy_id", location.getProxyId());
+
+                sender.sendMessage(MINI_MESSAGE.deserialize(MESSAGE, serverId, proxyId)
+                        .clickEvent(ClickEvent.copyToClipboard(createCopyableData(location, player)))
+                        .hoverEvent(HoverEvent.showText(Component.text("Click to copy", NamedTextColor.GREEN)))
                 );
             });
         });
@@ -57,7 +51,7 @@ public class CurrentServerCommand extends Command {
                 location.getProxyId(),
                 location.getServerId(),
                 player.getInstance().getUniqueId(),
-                this.formatPos(player.getPosition())
+                formatPos(player.getPosition())
         );
     }
 

@@ -20,7 +20,7 @@ public final class RollingAverage {
 
     public int sampleCount() {
         synchronized (this) {
-            return this.samples.size();
+            return samples.size();
         }
     }
 

@@ -21,13 +21,13 @@ public final class CoreModule extends MinestomModule {
     @Override
     public boolean onLoad() {
         PlayerResolver.setPlatformUsernameResolver(username -> {
-            Player player = MinecraftServer.getConnectionManager().getPlayer(username);
-            if (player != null) return new PlayerResolver.CachedMcPlayer(player.getUuid(), player.getUsername(), player.isOnline());
-            return null;
+            final Player player = MinecraftServer.getConnectionManager().getPlayer(username);
+            if (player == null) return null;
+            return new PlayerResolver.CachedMcPlayer(player.getUuid(), player.getUsername(), player.isOnline());
         });
 
-        CommandManager commandManager = MinecraftServer.getCommandManager();
-        commandManager.register(new PerformanceCommand(this.eventNode));
+        final CommandManager commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(new PerformanceCommand(eventNode));
         commandManager.register(new BadgeCommand());
 
         return true;

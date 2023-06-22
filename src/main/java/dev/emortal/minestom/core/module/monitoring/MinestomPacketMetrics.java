@@ -9,7 +9,8 @@ import net.minestom.server.event.player.PlayerPacketEvent;
 import net.minestom.server.event.player.PlayerPacketOutEvent;
 import org.jetbrains.annotations.NotNull;
 
-public class MinestomPacketMetrics implements MeterBinder {
+public final class MinestomPacketMetrics implements MeterBinder {
+
     private final EventNode<Event> eventNode;
 
     public MinestomPacketMetrics(@NotNull EventNode<Event> eventNode) {
@@ -18,17 +19,17 @@ public class MinestomPacketMetrics implements MeterBinder {
 
     @Override
     public void bindTo(@NotNull MeterRegistry registry) {
-        Counter packetsSent = Counter.builder("minestom.packets")
+        final Counter packetsSent = Counter.builder("minestom.packets")
                 .tag("direction", "out")
                 .description("The amount of packets sent by the server")
                 .register(registry);
 
-        Counter packetsReceived = Counter.builder("minestom.packets")
+        final Counter packetsReceived = Counter.builder("minestom.packets")
                 .tag("direction", "in")
                 .description("The amount of packets received by the server")
                 .register(registry);
 
-        this.eventNode.addListener(PlayerPacketEvent.class, event -> packetsReceived.increment())
-                .addListener(PlayerPacketOutEvent.class, event -> packetsSent.increment());
+        eventNode.addListener(PlayerPacketEvent.class, event -> packetsReceived.increment());
+        eventNode.addListener(PlayerPacketOutEvent.class, event -> packetsSent.increment());
     }
 }

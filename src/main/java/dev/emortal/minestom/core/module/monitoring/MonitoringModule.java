@@ -33,11 +33,7 @@ import java.util.Objects;
 @ModuleData(name = "monitoring", required = false)
 public final class MonitoringModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(MonitoringModule.class);
-    private static final @NotNull String FLEET_NAME;
-
-    static {
-        FLEET_NAME = Objects.requireNonNullElse(System.getenv("FLEET_NAME"), "unknown");
-    }
+    private static final @NotNull String FLEET_NAME = Objects.requireNonNullElse(System.getenv("FLEET_NAME"), "unknown");
 
     public MonitoringModule(@NotNull ModuleEnvironment environment) {
         super(environment);
@@ -45,22 +41,20 @@ public final class MonitoringModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        String envEnabled = System.getenv("MONITORING_ENABLED");
+        final String envEnabled = System.getenv("MONITORING_ENABLED");
         if (!(Environment.isProduction() || Boolean.parseBoolean(envEnabled))) {
             LOGGER.info("Monitoring is disabled (production: {}, env: {})", Environment.isProduction(), envEnabled);
             return false;
         }
 
         LOGGER.info("Starting monitoring with: [fleet={}, server={}]", FLEET_NAME, Environment.getHostname());
-        PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-        registry.config()
-                .meterFilter(new PrometheusRenameFilter())
-                .commonTags("fleet", FLEET_NAME);
+        final PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+        registry.config().meterFilter(new PrometheusRenameFilter()).commonTags("fleet", FLEET_NAME);
 
         if (Environment.isProduction()) registry.config().commonTags("server", Environment.getHostname());
 
         if (Environment.isProduction()) {
-            String pyroscopeAddress = System.getenv("PYROSCOPE_SERVER_ADDRESS");
+            final String pyroscopeAddress = System.getenv("PYROSCOPE_SERVER_ADDRESS");
             if (pyroscopeAddress == null) {
                 LOGGER.warn("PYROSCOPE_SERVER_ADDRESS is not set, Pyroscope will not be enabled");
             } else {
@@ -91,33 +85,32 @@ public final class MonitoringModule extends MinestomModule {
         // Proc
         new ProcessorMetrics().bindTo(registry);
         // Custom
-        new MinestomMetrics(this.eventNode).bindTo(registry);
-        new MinestomPacketMetrics(this.eventNode).bindTo(registry);
+        new MinestomMetrics(eventNode).bindTo(registry);
+        new MinestomPacketMetrics(eventNode).bindTo(registry);
 
         // Add the registry globally so that it can be used by other modules without having to pass it around
         Metrics.addRegistry(registry);
 
         try {
             LOGGER.info("Starting Prometheus HTTP server on port 8081");
-            HttpServer server = HttpServer.create(new InetSocketAddress(8081), 0);
+            final HttpServer server = HttpServer.create(new InetSocketAddress(8081), 0);
             server.createContext("/metrics", exchange -> {
-                String response = registry.scrape();
+                final String response = registry.scrape();
                 exchange.sendResponseHeaders(200, response.getBytes().length);
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(response.getBytes());
+                try (final OutputStream output = exchange.getResponseBody()) {
+                    output.write(response.getBytes());
                 }
                 exchange.close();
             });
 
             new Thread(server::start, "micrometer-http").start();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (final IOException exception) {
+            throw new RuntimeException(exception);
         }
         return true;
     }
 
     @Override
     public void onUnload() {
-
     }
 }

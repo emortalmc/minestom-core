@@ -45,7 +45,7 @@ public final class MessagingModule extends MinestomModule {
             return;
         }
 
-        KafkaSettings kafkaSettings = new KafkaSettings()
+        final KafkaSettings kafkaSettings = new KafkaSettings()
                 .setAutoCommit(true)
                 .setBootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT);
 
@@ -53,15 +53,14 @@ public final class MessagingModule extends MinestomModule {
         this.kafkaProducer = new FriendlyKafkaProducer(kafkaSettings);
     }
 
-    public <T extends AbstractMessage> void addListener(Class<T> messageType, Consumer<T> listener) {
-        MessageProtoConfig<T> parser = ProtoParserRegistry.getParser(messageType);
-        if (parser == null)
-            throw new IllegalArgumentException("No parser found for message type " + messageType.getName());
+    public <T extends AbstractMessage> void addListener(@NotNull Class<T> messageType, @NotNull Consumer<T> listener) {
+        final MessageProtoConfig<T> parser = ProtoParserRegistry.getParser(messageType);
+        if (parser == null) throw new IllegalArgumentException("No parser found for message type " + messageType.getName());
 
-        if (this.kafkaConsumer != null) this.kafkaConsumer.addListener(messageType, listener);
+        if (kafkaConsumer != null) kafkaConsumer.addListener(messageType, listener);
     }
 
-    public FriendlyKafkaProducer getKafkaProducer() {
+    public @Nullable FriendlyKafkaProducer getKafkaProducer() {
         return this.kafkaProducer;
     }
 
@@ -73,7 +72,7 @@ public final class MessagingModule extends MinestomModule {
 
     @Override
     public void onUnload() {
-        if (this.kafkaConsumer != null) this.kafkaConsumer.close();
-        if (this.kafkaProducer != null) this.kafkaProducer.shutdown();
+        if (kafkaConsumer != null) kafkaConsumer.close();
+        if (kafkaProducer != null) kafkaProducer.shutdown();
     }
 }

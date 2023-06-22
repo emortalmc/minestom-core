@@ -36,32 +36,31 @@ public class ArgumentMcPlayer {
     }
 
     public static Argument<CompletableFuture<McPlayer>> create(@NotNull String id,
-                                                               McPlayerGrpc.McPlayerFutureStub mcPlayerService,
+                                                               @NotNull McPlayerGrpc.McPlayerFutureStub mcPlayerService,
                                                                @Nullable McPlayerProto.SearchPlayersByUsernameRequest.FilterMethod filterMethod) {
 
-        ArgumentMcPlayer argument = new ArgumentMcPlayer(id, mcPlayerService, filterMethod);
+        final ArgumentMcPlayer argument = new ArgumentMcPlayer(id, mcPlayerService, filterMethod);
 
         return new ArgumentWord(id)
                 .map(argument::mapInput)
                 .setSuggestionCallback(argument::suggestionCallback);
     }
 
-    private CompletableFuture<McPlayer> mapInput(String input) {
+    private CompletableFuture<McPlayer> mapInput(@Nullable String input) {
         if (input == null || input.isEmpty() || input.length() == 1 && input.charAt(0) == 0) {
             return CompletableFuture.completedFuture(null);
         }
 
-        var playerReqFuture = this.mcPlayerService.getPlayerByUsername(McPlayerProto.PlayerUsernameRequest.newBuilder()
-                .setUsername(input).build());
+        final var playerReqFuture = mcPlayerService.getPlayerByUsername(McPlayerProto.PlayerUsernameRequest.newBuilder().setUsername(input).build());
 
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return playerReqFuture.get().getPlayer();
-            } catch (Exception e) {
-                throw new CompletionException(e);
+            } catch (final Exception exception) {
+                throw new CompletionException(exception);
             }
-        }, ForkJoinPool.commonPool()).exceptionally(ex -> {
-            LOGGER.error("Failed to retrieve McPlayer (input: {}): {}", input, ex);
+        }, ForkJoinPool.commonPool()).exceptionally(exception -> {
+            LOGGER.error("Failed to retrieve McPlayer (input: {})", input, exception);
             return null;
         });
     }
@@ -69,32 +68,27 @@ public class ArgumentMcPlayer {
     private void suggestionCallback(CommandSender sender, CommandContext context, Suggestion suggestion) {
         if (!(sender instanceof Player player)) return;
 
-        String input = context.getRaw(this.id);
+        final String input = context.getRaw(this.id);
         if (input == null || input.length() <= 2) return;
 
-        var reqBuilder = McPlayerProto.SearchPlayersByUsernameRequest.newBuilder()
+        final var reqBuilder = McPlayerProto.SearchPlayersByUsernameRequest.newBuilder()
                 .setIssuerId(player.getUuid().toString())
                 .setSearchUsername(input)
-                .setPageable(
-                        Pageable.newBuilder()
-                                .setPage(0)
-                                .setSize(15)
-                );
+                .setPageable(Pageable.newBuilder().setPage(0).setSize(15));
 
         if (this.filterMethod != null) {
             reqBuilder.setFilterMethod(this.filterMethod);
         }
 
-        var searchReqFuture = this.mcPlayerService.searchPlayersByUsername(reqBuilder.build());
+        final var searchReqFuture = this.mcPlayerService.searchPlayersByUsername(reqBuilder.build());
 
         try {
-            McPlayerProto.SearchPlayersByUsernameResponse response = searchReqFuture.get();
-
-            for (McPlayer lPlayer : response.getPlayersList()) {
+            final var response = searchReqFuture.get();
+            for (final McPlayer lPlayer : response.getPlayersList()) {
                 suggestion.addEntry(new SuggestionEntry(lPlayer.getCurrentUsername()));
             }
-        } catch (ExecutionException | InterruptedException ex) {
-            LOGGER.error("Failed to get player suggestions (input: {}): {}", input, ex);
+        } catch (final ExecutionException | InterruptedException exception) {
+            LOGGER.error("Failed to get player suggestions (input: {})", input, exception);
         }
     }
 }
