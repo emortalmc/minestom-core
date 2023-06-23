@@ -7,7 +7,6 @@ import dev.emortal.api.agonessdk.IgnoredStreamObserver;
 import dev.emortal.api.modules.Module;
 import dev.emortal.api.modules.ModuleData;
 import dev.emortal.api.modules.ModuleEnvironment;
-import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.Environment;
 import dev.emortal.minestom.core.module.kubernetes.command.agones.AgonesCommand;
 import dev.emortal.minestom.core.module.kubernetes.command.currentserver.CurrentServerCommand;
@@ -69,10 +68,7 @@ public final class KubernetesModule extends Module {
         }
 
         // player tracker
-        GrpcStubCollection.getPlayerTrackerService().ifPresent(playerTracker -> {
-            final PlayerTrackerManager playerTrackerManager = new PlayerTrackerManager(playerTracker);
-            MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTrackerManager));
-        });
+        MinecraftServer.getCommandManager().register(new CurrentServerCommand());
 
         // agones
         if (AGONES_SDK_ENABLED) loadAgones();

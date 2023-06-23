@@ -40,7 +40,6 @@ public class QueueCommand extends Command {
 
     public QueueCommand(@NotNull MatchmakerGrpc.MatchmakerFutureStub matchmaker, @NotNull GameModeCollection gameModeCollection) {
         super("play", "queue");
-
         this.matchmaker = matchmaker;
 
         // Load the available gamemodes

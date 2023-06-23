@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class PerformanceCommand extends Command {
+public final class PerformanceCommand extends Command {
     private static final long SECONDS_IN_NANO = 1_000_000_000L;
     private static final int TPS = MinecraftServer.TICK_PER_SECOND;
     private static final BigDecimal TPS_BASE = new BigDecimal(SECONDS_IN_NANO).multiply(new BigDecimal(TPS));
@@ -60,9 +60,7 @@ public class PerformanceCommand extends Command {
 
     public PerformanceCommand(@NotNull EventNode<Event> eventNode) {
         super("performance");
-
         eventNode.addListener(ServerTickMonitorEvent.class, event -> onTick(event.getTickMonitor().getTickTime()));
-
         addSyntax(this::onExecute);
     }
 
@@ -91,12 +89,10 @@ public class PerformanceCommand extends Command {
     }
 
     private void onExecute(@NotNull CommandSender sender, @NotNull CommandContext context) {
-        this.getGcInfo();
-
-        long totalMem = Runtime.getRuntime().totalMemory() / 1024 / 1024;
-        long freeMem = Runtime.getRuntime().freeMemory() / 1024 / 1024;
-        long ramUsage = totalMem - freeMem;
-        float ramPercent = (float) ramUsage / (float) totalMem;
+        final long totalMem = Runtime.getRuntime().totalMemory() / 1024 / 1024;
+        final long freeMem = Runtime.getRuntime().freeMemory() / 1024 / 1024;
+        final long ramUsage = totalMem - freeMem;
+        final float ramPercent = (float) ramUsage / (float) totalMem;
 
         sender.sendMessage(
                 Component.text()
@@ -106,7 +102,7 @@ public class PerformanceCommand extends Command {
                         .append(Component.text(String.format(" %sMB / %sMB\n", ramUsage, totalMem), NamedTextColor.GRAY))
 
                         .append(Component.newline())
-                        .append(this.createGcComponent())
+                        .append(createGcComponent())
                         .append(Component.newline())
 
                         .append(Component.text("\nTPS (5s, 15s, 1m, 5m, 15m): ", NamedTextColor.GRAY))

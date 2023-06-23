@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ForkJoinPool;
 
-public class BadgeCommand extends Command {
+public final class BadgeCommand extends Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(BadgeCommand.class);
 
     private final BadgeManagerGrpc.BadgeManagerFutureStub badgeManager = GrpcStubCollection.getBadgeManagerService().orElse(null);
@@ -38,7 +38,6 @@ public class BadgeCommand extends Command {
         final ArgumentWord badgeArgument = ArgumentBadge.create(badgeManager, "badge", true);
 
         addConditionalSyntax(Conditions::playerOnly, this::executeSetCurrentBadge, setArgument, badgeArgument);
-
         addSubcommand(new BadgeAdminSubcommand(badgeManager));
     }
 

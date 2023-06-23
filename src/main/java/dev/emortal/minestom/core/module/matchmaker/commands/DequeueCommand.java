@@ -28,7 +28,6 @@ public final class DequeueCommand extends Command {
 
     public DequeueCommand(@NotNull MatchmakerGrpc.MatchmakerFutureStub matchmaker) {
         super("dequeue");
-
         this.matchmaker = matchmaker;
 
         setCondition(Conditions::playerOnly);

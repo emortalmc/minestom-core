@@ -2,7 +2,6 @@ package dev.emortal.minestom.core.module.kubernetes.command.agones;
 
 import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
 import dev.emortal.minestom.core.utils.command.ExtraConditions;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentLiteral;
@@ -31,11 +30,6 @@ public final class AgonesCommand extends Command {
         addSyntax(sdkSubs::executeShutdown, new ArgumentLiteral("shutdown"));
         addSyntax(sdkSubs::executeWatchGameserver, new ArgumentLiteral("watch"), new ArgumentLiteral("gameserver"));
     }
-
-    public static Component generateMessage(@NotNull String sdk, @NotNull String method, @NotNull RequestStatus status, @NotNull String message) {
-        final String text = "Agones >> [%s.%s] (%s) %s".formatted(sdk, method, status.name(), message);
-        return Component.text(text, status.getColor());
-    };
 
     public enum RequestStatus {
 

@@ -26,7 +26,7 @@ public final class LiveConfigModule extends Module {
     }
 
     public LiveConfigCollection getConfigCollection() {
-        return this.configCollection;
+        return configCollection;
     }
 
     @Override
@@ -38,7 +38,7 @@ public final class LiveConfigModule extends Module {
         java.util.logging.Logger.getLogger(OkHttpClient.class.getName()).setLevel(Level.FINE);
 
         try {
-            this.configCollection = new LiveConfigCollection(apiClient);
+            configCollection = new LiveConfigCollection(apiClient);
         } catch (final ApiException exception) {
             LOGGER.error("Failed to load LiveConfigCollection\nbody: {}\nheaders: {}", exception.getResponseBody(), exception.getResponseHeaders(), exception);
             return false;

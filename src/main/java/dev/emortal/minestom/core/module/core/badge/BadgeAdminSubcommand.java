@@ -46,7 +46,6 @@ public final class BadgeAdminSubcommand extends Command {
         final ArgumentWord badgeArgument = ArgumentBadge.create(badgeManager, "badge", false);
 
         addSyntax(this::executeAddBadgeToPlayer, addArgument, playerArgument, badgeArgument);
-
         addSyntax(this::executeRemoveBadgeFromPlayer, removeArgument, playerArgument, badgeArgument);
     }
 

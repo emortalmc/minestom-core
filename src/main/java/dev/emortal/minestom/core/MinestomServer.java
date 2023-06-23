@@ -20,15 +20,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class MinestomServer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MinestomServer.class);
+    private static final Logger LOGGER;
+
+    static {
+        // I'd rather have this all done when this class is loaded rather than when it is constructed, which could be after other module classes
+        // that need the logger are loaded
+        final String loggerConfigFile = Environment.isProduction() ? "logback-prod.xml" : "logback-dev.xml";
+        System.setProperty("logback.configurationFile", loggerConfigFile);
+
+        LOGGER = LoggerFactory.getLogger(MinestomServer.class);
+    }
 
     private static final String DEFAULT_ADDRESS = "0.0.0.0";
     private static final String DEFAULT_PORT = "25565";
 
-    public MinestomServer(Builder builder) {
-        final String logbackConfigFile = Environment.isProduction() ? "logback-prod.xml" : "logback-dev.xml";
-        System.setProperty("logback.configurationFile", logbackConfigFile);
-
+    private MinestomServer(Builder builder) {
         final MinecraftServer server = MinecraftServer.init();
         MinecraftServer.setCompressionThreshold(0);
         tryEnableVelocity();

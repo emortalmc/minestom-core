@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-public class ArgumentBadge {
+public final class ArgumentBadge {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArgumentBadge.class);
 
     private final BadgeManagerGrpc.BadgeManagerFutureStub badgeManager;
@@ -36,7 +36,6 @@ public class ArgumentBadge {
         final ArgumentWord createdArgument = new ArgumentWord(id);
 
         createdArgument.setSuggestionCallback(handlerArgument::suggestionCallback);
-
         return createdArgument;
     }
 
@@ -82,7 +81,7 @@ public class ArgumentBadge {
         badges.stream()
                 .filter(badge -> badge.getId().toLowerCase().startsWith(filter.toLowerCase()))
                 .map(badge -> new SuggestionEntry(badge.getId(),
-                        Component.text(badge.getFriendlyName() + ": " + badge.getChatCharacter())))
+                        Component.text(badge.getFriendlyName() + ": " + badge.getChatString())))
                 .forEach(suggestion::addEntry);
     }
 }

@@ -12,6 +12,8 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minestom.server.entity.Player;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
+import net.minestom.server.inventory.click.ClickType;
+import net.minestom.server.inventory.condition.InventoryConditionResult;
 import net.minestom.server.item.ItemHideFlag;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
@@ -28,7 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
-public class BadgeGui {
+public final class BadgeGui {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final Logger LOGGER = LoggerFactory.getLogger(BadgeGui.class);
 
@@ -78,45 +80,7 @@ public class BadgeGui {
         this.canChangeActive = canChangeActive;
 
         drawInventory(badges, ownedBadgeIds, playerBadges.getActiveBadgeId());
-
-        inventory.addInventoryCondition((clicker, slot, clickType, inventoryConditionResult) -> {
-            if (slot < 0 || slot >= inventory.getSize()) return;
-
-            final ItemStack clickedItem = inventory.getItemStack(slot);
-            if (clickedItem.isAir()) return;
-
-            inventoryConditionResult.setCancel(true);
-
-            if (!this.canChangeActive) {
-                clicker.sendMessage(CLICK_CANNOT_CHANGE_ACTIVE);
-                return;
-            }
-
-            final boolean isOwned = clickedItem.meta().getTag(BADGE_UNLOCKED_TAG);
-            if (!isOwned) return;
-
-            final boolean isActive = clickedItem.meta().getTag(BADGE_ACTIVE_TAG);
-            if (isActive) return;
-
-            final String badgeId = clickedItem.meta().getTag(BADGE_ID_TAG);
-            final var setPlayerBadgeRequest = BadgeManagerProto.SetActivePlayerBadgeRequest.newBuilder()
-                    .setPlayerId(player.getUuid().toString())
-                    .setBadgeId(badgeId)
-                    .build();
-
-            Futures.addCallback(badgeService.setActivePlayerBadge(setPlayerBadgeRequest), FunctionalFutureCallback.create(
-                    unused -> {
-                        final String badgeName = clickedItem.meta().getTag(BADGE_NAME_TAG);
-                        clicker.sendMessage(Component.text("Set active badge to " + badgeName, NamedTextColor.GREEN));
-                        new BadgeGui(clicker); // Reopen the gui
-                    },
-                    throwable -> {
-                        LOGGER.error("Failed to set active badge for {}: {}", clicker.getUsername(), throwable);
-                        clicker.sendMessage(Component.text("Failed to set active badge", NamedTextColor.RED));
-                    }
-            ), ForkJoinPool.commonPool());
-        });
-
+        inventory.addInventoryCondition(this::onClick);
         player.openInventory(inventory);
     }
 
@@ -135,6 +99,42 @@ public class BadgeGui {
 
             inventory.setItemStack(i, createItemStack(badge, isOwned, isActive));
         }
+    }
+
+    private void onClick(Player clicker, int slot, ClickType clickType, InventoryConditionResult result) {
+        if (slot < 0 || slot >= inventory.getSize()) return;
+
+        final ItemStack clickedItem = inventory.getItemStack(slot);
+        if (clickedItem.isAir()) return;
+
+        result.setCancel(true);
+
+        if (!canChangeActive) {
+            clicker.sendMessage(CLICK_CANNOT_CHANGE_ACTIVE);
+            return;
+        }
+
+        final boolean isUnlocked = clickedItem.meta().getTag(BADGE_UNLOCKED_TAG);
+        final boolean isActive = clickedItem.meta().getTag(BADGE_ACTIVE_TAG);
+        if (!isUnlocked || isActive) return;
+
+        final String badgeId = clickedItem.meta().getTag(BADGE_ID_TAG);
+        final var setPlayerBadgeRequest = BadgeManagerProto.SetActivePlayerBadgeRequest.newBuilder()
+                .setPlayerId(clicker.getUuid().toString())
+                .setBadgeId(badgeId)
+                .build();
+
+        Futures.addCallback(badgeService.setActivePlayerBadge(setPlayerBadgeRequest), FunctionalFutureCallback.create(
+                unused -> {
+                    final String badgeName = clickedItem.meta().getTag(BADGE_NAME_TAG);
+                    clicker.sendMessage(Component.text("Set active badge to " + badgeName, NamedTextColor.GREEN));
+                    new BadgeGui(clicker); // Reopen the gui
+                },
+                throwable -> {
+                    LOGGER.error("Failed to set active badge for {}: {}", clicker.getUsername(), throwable);
+                    clicker.sendMessage(Component.text("Failed to set active badge", NamedTextColor.RED));
+                }
+        ), ForkJoinPool.commonPool());
     }
 
     private @NotNull ItemStack createItemStack(@NotNull Badge badge, boolean isOwned, boolean isActive) {

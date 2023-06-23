@@ -26,13 +26,13 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     private static final String MATCH_FOUND_MESSAGE = "<green><mode> match found! Teleporting in <time> seconds...</green>";
     private static final String MATCH_CANCELLED_MESSAGE = "<mode> match cancelled.";
 
-    private final ScheduledFuture<?> future;
+    private final ScheduledFuture<?> notificationTask;
     private final GameModeConfig gameMode;
 
     public DefaultMatchmakingSessionImpl(@NotNull Player player, @NotNull GameModeConfig gameMode, @NotNull Ticket ticket) {
         super(player, ticket);
 
-        this.future = SCHEDULER.scheduleAtFixedRate(this::notifyPlayer, 30, 30, TimeUnit.SECONDS);
+        this.notificationTask = SCHEDULER.scheduleAtFixedRate(this::notifyPlayer, 30, 30, TimeUnit.SECONDS);
         this.gameMode = gameMode;
 
         /* TODO: We experimented with notifications, not good right now because we can't get rid of the
@@ -84,6 +84,6 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
 
     @Override
     public void destroy() {
-        future.cancel(false);
+        notificationTask.cancel(false);
     }
 }

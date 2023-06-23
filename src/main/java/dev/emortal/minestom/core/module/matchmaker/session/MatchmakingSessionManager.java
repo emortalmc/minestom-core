@@ -257,7 +257,7 @@ public final class MatchmakingSessionManager {
         Futures.addCallback(matchmaker.getPlayerQueueInfo(infoRequest), FunctionalFutureCallback.create(
                 response -> {
                     final Ticket ticket = response.getTicket();
-                    final GameModeConfig mode = this.configs.get(ticket.getGameModeId());
+                    final GameModeConfig mode = configs.get(ticket.getGameModeId());
 
                     final var modeName = Placeholder.unparsed("mode", mode == null ? ticket.getGameModeId() : mode.getFriendlyName());
                     if (mode == null) {
