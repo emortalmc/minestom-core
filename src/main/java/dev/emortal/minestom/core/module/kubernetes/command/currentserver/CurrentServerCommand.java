@@ -1,12 +1,11 @@
 package dev.emortal.minestom.core.module.kubernetes.command.currentserver;
 
 import com.google.common.util.concurrent.Futures;
-import dev.emortal.api.grpc.playertracker.PlayerTrackerGrpc;
-import dev.emortal.api.grpc.playertracker.PlayerTrackerProto;
-import dev.emortal.api.model.playertracker.PlayerLocation;
+import dev.emortal.api.grpc.mcplayer.McPlayerProto;
+import dev.emortal.api.grpc.mcplayer.PlayerTrackerGrpc;
+import dev.emortal.api.model.mcplayer.CurrentServer;
 import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.api.utils.callback.FunctionalFutureCallback;
-import java.util.concurrent.ForkJoinPool;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -20,10 +19,11 @@ import net.minestom.server.command.builder.condition.Conditions;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
-
-import java.text.DecimalFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.text.DecimalFormat;
+import java.util.concurrent.ForkJoinPool;
 
 public final class CurrentServerCommand extends Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(CurrentServerCommand.class);
@@ -57,26 +57,26 @@ public final class CurrentServerCommand extends Command {
             return;
         }
 
-        final var request = PlayerTrackerProto.GetPlayerServerRequest.newBuilder().setPlayerId(player.getUuid().toString()).build();
-        Futures.addCallback(playerTracker.getPlayerServer(request), FunctionalFutureCallback.create(
+        final var request = McPlayerProto.GetPlayerServersRequest.newBuilder().addPlayerIds(player.getUuid().toString()).build();
+        Futures.addCallback(playerTracker.getPlayerServers(request), FunctionalFutureCallback.create(
                 response -> {
-                    final PlayerLocation location = response.getServer();
+                    final CurrentServer currentServer = response.getPlayerServersMap().get(player.getUuid().toString());
 
-                    final var serverId = Placeholder.unparsed("server_id", location.getServerId());
-                    final var proxyId = Placeholder.unparsed("proxy_id", location.getProxyId());
+                    final var serverId = Placeholder.unparsed("server_id", currentServer.getServerId());
+                    final var proxyId = Placeholder.unparsed("proxy_id", currentServer.getProxyId());
 
                     sender.sendMessage(MINI_MESSAGE.deserialize(MESSAGE, serverId, proxyId)
-                            .clickEvent(ClickEvent.copyToClipboard(createCopyableData(location, player)))
+                            .clickEvent(ClickEvent.copyToClipboard(createCopyableData(currentServer, player)))
                             .hoverEvent(HoverEvent.showText(Component.text("Click to copy", NamedTextColor.GREEN))));
                 },
                 exception -> LOGGER.error("Failed to retrieve player server", exception)
         ), ForkJoinPool.commonPool());
     }
 
-    private String createCopyableData(@NotNull PlayerLocation location, @NotNull Player player) {
+    private String createCopyableData(@NotNull CurrentServer server, @NotNull Player player) {
         return COPY_MESSAGE.formatted(
-                location.getProxyId(),
-                location.getServerId(),
+                server.getProxyId(),
+                server.getServerId(),
                 player.getInstance().getUniqueId(),
                 formatPos(player.getPosition())
         );
