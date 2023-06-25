@@ -10,14 +10,16 @@ import dev.emortal.minestom.core.module.liveconfig.LiveConfigModule;
 import dev.emortal.minestom.core.module.matchmaker.MatchmakerModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import dev.emortal.minestom.core.module.permissions.PermissionModule;
-import java.util.ArrayList;
-import java.util.List;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.extras.MojangAuth;
 import net.minestom.server.extras.velocity.VelocityProxy;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class MinestomServer {
     private static final Logger LOGGER;
@@ -46,7 +48,7 @@ public final class MinestomServer {
 
         LOGGER.info("Starting server at {}:{}", builder.address, builder.port);
 
-        final ModuleManager moduleManager = new ModuleManager(builder.modules);
+        final ModuleManager moduleManager = new ModuleManager(new ArrayList<>(builder.modules.values()));
         MinecraftServer.getSchedulerManager().buildShutdownTask(moduleManager::onUnload);
 
         server.start(builder.address, builder.port);
@@ -70,7 +72,7 @@ public final class MinestomServer {
         private int port = Integer.parseInt(getValue("minestom.port", DEFAULT_PORT));
         private boolean mojangAuth = false;
 
-        private final List<LoadableModule> modules = new ArrayList<>();
+        private final Map<Class<? extends Module>, LoadableModule> modules = new HashMap<>();
 
         public Builder() {
             // we do this because env variables in dockerfiles break k8s env variables?
@@ -108,7 +110,7 @@ public final class MinestomServer {
         }
 
         public Builder module(@NotNull Class<? extends Module> clazz, @NotNull LoadableModule.Creator moduleCreator) {
-            modules.add(new LoadableModule(clazz, moduleCreator));
+            modules.put(clazz, new LoadableModule(clazz, moduleCreator));
             return this;
         }
 
