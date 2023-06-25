@@ -46,7 +46,7 @@ public final class MessagingModule extends Module {
         }
 
         final KafkaSettings kafkaSettings = new KafkaSettings()
-                .setAutoCommit(true)
+                .setAutoCommit(false)
                 .setBootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT);
 
         this.kafkaConsumer = new FriendlyKafkaConsumer(kafkaSettings);
