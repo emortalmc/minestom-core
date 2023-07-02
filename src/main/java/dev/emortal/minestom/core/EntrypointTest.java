@@ -2,7 +2,6 @@ package dev.emortal.minestom.core;
 
 import dev.emortal.minestom.core.module.monitoring.MonitoringModule;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.CommandManager;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentWord;
 import net.minestom.server.command.builder.arguments.minecraft.ArgumentEntity;
@@ -22,7 +21,7 @@ public final class EntrypointTest {
                 .mojangAuth(true)
                 .commonModules()
                 .module(MonitoringModule.class, MonitoringModule::new)
-                .build();
+                .buildAndStart();
 
         Instance instance = MinecraftServer.getInstanceManager().createInstanceContainer();
 
