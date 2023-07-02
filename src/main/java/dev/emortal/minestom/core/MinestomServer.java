@@ -10,6 +10,7 @@ import dev.emortal.minestom.core.module.liveconfig.LiveConfigModule;
 import dev.emortal.minestom.core.module.matchmaker.MatchmakerModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import dev.emortal.minestom.core.module.permissions.PermissionModule;
+import java.util.List;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.extras.MojangAuth;
 import net.minestom.server.extras.velocity.VelocityProxy;
@@ -36,10 +37,14 @@ public final class MinestomServer {
     private static final String DEFAULT_ADDRESS = "0.0.0.0";
     private static final String DEFAULT_PORT = "25565";
 
+    public static @NotNull Builder builder() {
+        return new Builder();
+    }
+
     private MinestomServer(Builder builder) {
-        final MinecraftServer server = MinecraftServer.init();
+        var server = MinecraftServer.init();
         MinecraftServer.setCompressionThreshold(0);
-        tryEnableVelocity();
+        this.tryEnableVelocity();
 
         if (builder.mojangAuth) {
             LOGGER.info("Enabling Mojang authentication");
@@ -48,7 +53,12 @@ public final class MinestomServer {
 
         LOGGER.info("Starting server at {}:{}", builder.address, builder.port);
 
-        final ModuleManager moduleManager = new ModuleManager(new ArrayList<>(builder.modules.values()));
+        List<LoadableModule> modules = new ArrayList<>();
+        for (var entry : builder.modules.entrySet()) {
+            modules.add(new LoadableModule(entry.getKey(), entry.getValue()));
+        }
+
+        var moduleManager = new ModuleManager(modules);
         MinecraftServer.getSchedulerManager().buildShutdownTask(moduleManager::onUnload);
 
         server.start(builder.address, builder.port);
@@ -56,7 +66,7 @@ public final class MinestomServer {
     }
 
     private void tryEnableVelocity() {
-        final String forwardingSecret = System.getenv("VELOCITY_FORWARDING_SECRET");
+        String forwardingSecret = System.getenv("VELOCITY_FORWARDING_SECRET");
         if (forwardingSecret == null) {
             LOGGER.warn("Not enabling Velocity forwarding, no secret was provided");
             return;
@@ -72,12 +82,12 @@ public final class MinestomServer {
         private int port = Integer.parseInt(getValue("minestom.port", DEFAULT_PORT));
         private boolean mojangAuth = false;
 
-        private final Map<Class<? extends Module>, LoadableModule> modules = new HashMap<>();
+        private final Map<Class<? extends Module>, LoadableModule.Creator> modules = new HashMap<>();
 
-        public Builder() {
+        private Builder() {
             // we do this because env variables in dockerfiles break k8s env variables?
             // So we can't add system properties in the dockerfile, but we can add them at runtime
-            for (final var entry : System.getenv().entrySet()) {
+            for (var entry : System.getenv().entrySet()) {
                 if (System.getProperty(entry.getKey()) == null) {
                     System.setProperty(entry.getKey(), entry.getValue());
                 }
@@ -100,7 +110,7 @@ public final class MinestomServer {
         }
 
         public Builder commonModules() {
-            return module(KubernetesModule.class, KubernetesModule::new)
+            return this.module(KubernetesModule.class, KubernetesModule::new)
                     .module(CoreModule.class, CoreModule::new)
                     .module(PermissionModule.class, PermissionModule::new)
                     .module(ChatModule.class, ChatModule::new)
@@ -110,7 +120,7 @@ public final class MinestomServer {
         }
 
         public Builder module(@NotNull Class<? extends Module> clazz, @NotNull LoadableModule.Creator moduleCreator) {
-            modules.put(clazz, new LoadableModule(clazz, moduleCreator));
+            this.modules.put(clazz, moduleCreator);
             return this;
         }
 

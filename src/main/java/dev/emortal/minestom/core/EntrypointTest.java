@@ -16,7 +16,7 @@ import net.minestom.server.utils.entity.EntityFinder;
 public final class EntrypointTest {
 
     public static void main(String[] args) {
-        new MinestomServer.Builder()
+        MinestomServer.builder()
                 .address("localhost")
                 .port(25565)
                 .mojangAuth(true)
@@ -24,9 +24,9 @@ public final class EntrypointTest {
                 .module(MonitoringModule.class, MonitoringModule::new)
                 .build();
 
-        final Instance instance = MinecraftServer.getInstanceManager().createInstanceContainer();
+        Instance instance = MinecraftServer.getInstanceManager().createInstanceContainer();
 
-        final var eventHandler = MinecraftServer.getGlobalEventHandler();
+        var eventHandler = MinecraftServer.getGlobalEventHandler();
         eventHandler.addListener(PlayerLoginEvent.class, event -> event.setSpawningInstance(instance));
         eventHandler.addListener(PlayerSpawnEvent.class, event -> {
             final Player player = event.getPlayer();
@@ -34,19 +34,19 @@ public final class EntrypointTest {
             player.setFlying(true);
         });
 
-        final Command command = new Command("test");
+        var command = new Command("test");
 
-        final var required = new ArgumentWord("required");
-        final var optional = new ArgumentEntity("optional").onlyPlayers(true).setDefaultValue(EntityFinder::new);
+        var required = new ArgumentWord("required");
+        var optional = new ArgumentEntity("optional").onlyPlayers(true).setDefaultValue(EntityFinder::new);
 
         command.addSyntax((sender, context) -> sender.sendMessage("Hello world!"), required);
         command.addSyntax((sender, context) -> sender.sendMessage("Hello world 2!"), required, optional);
 
-        final Command testPermsCmd = new Command("testperms");
+        var testPermsCmd = new Command("testperms");
         testPermsCmd.setCondition((sender, commandName) -> sender.hasPermission("command.testperms"));
         testPermsCmd.setDefaultExecutor((sender, context) -> sender.sendMessage("works :)"));
 
-        final CommandManager commandManager = MinecraftServer.getCommandManager();
+        var commandManager = MinecraftServer.getCommandManager();
         commandManager.register(command);
         commandManager.register(testPermsCmd);
     }

@@ -9,6 +9,7 @@ import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.permission.Permission;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +54,7 @@ public final class PermissionModule extends MinestomModule {
     public void onUnload() {
     }
 
-    public PermissionCache getPermissionCache() {
+    public @Nullable PermissionCache getPermissionCache() {
         return this.permissionCache;
     }
 }

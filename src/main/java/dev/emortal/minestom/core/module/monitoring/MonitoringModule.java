@@ -41,39 +41,38 @@ public final class MonitoringModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        final String envEnabled = System.getenv("MONITORING_ENABLED");
+        String envEnabled = System.getenv("MONITORING_ENABLED");
         if (!(Environment.isProduction() || Boolean.parseBoolean(envEnabled))) {
             LOGGER.info("Monitoring is disabled (production: {}, env: {})", Environment.isProduction(), envEnabled);
             return false;
         }
 
         LOGGER.info("Starting monitoring with: [fleet={}, server={}]", FLEET_NAME, Environment.getHostname());
-        final PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+
+        var registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         registry.config().meterFilter(new PrometheusRenameFilter()).commonTags("fleet", FLEET_NAME);
 
-        if (Environment.isProduction()) registry.config().commonTags("server", Environment.getHostname());
+        if (Environment.isProduction()) {
+            registry.config().commonTags("server", Environment.getHostname());
+        }
 
         if (Environment.isProduction()) {
-            final String pyroscopeAddress = System.getenv("PYROSCOPE_SERVER_ADDRESS");
+            String pyroscopeAddress = System.getenv("PYROSCOPE_SERVER_ADDRESS");
             if (pyroscopeAddress == null) {
                 LOGGER.warn("PYROSCOPE_SERVER_ADDRESS is not set, Pyroscope will not be enabled");
             } else {
                 Pyroscope.setStaticLabels(Map.of(
-                                "fleet", FLEET_NAME,
-                                "pod", Environment.getHostname()
-                        )
-                );
+                        "fleet", FLEET_NAME,
+                        "pod", Environment.getHostname()
+                ));
 
-                PyroscopeAgent.start(
-                        new PyroscopeAgent.Options.Builder(
-                                new Config.Builder()
-                                        .setApplicationName(FLEET_NAME)
-                                        .setProfilingEvent(EventType.ITIMER)
-                                        .setFormat(Format.JFR)
-                                        .setServerAddress(pyroscopeAddress)
-                                        .build()
-                        ).build()
-                );
+                var config = new Config.Builder()
+                        .setApplicationName(FLEET_NAME)
+                        .setProfilingEvent(EventType.ITIMER)
+                        .setFormat(Format.JFR)
+                        .setServerAddress(pyroscopeAddress)
+                        .build();
+                PyroscopeAgent.start(new PyroscopeAgent.Options.Builder(config).build());
             }
         }
 
@@ -85,26 +84,27 @@ public final class MonitoringModule extends MinestomModule {
         // Proc
         new ProcessorMetrics().bindTo(registry);
         // Custom
-        new MinestomMetrics(eventNode).bindTo(registry);
-        new MinestomPacketMetrics(eventNode).bindTo(registry);
+        new MinestomMetrics(this.eventNode).bindTo(registry);
+        new MinestomPacketMetrics(this.eventNode).bindTo(registry);
 
         // Add the registry globally so that it can be used by other modules without having to pass it around
         Metrics.addRegistry(registry);
 
         try {
             LOGGER.info("Starting Prometheus HTTP server on port 8081");
-            final HttpServer server = HttpServer.create(new InetSocketAddress(8081), 0);
+            var server = HttpServer.create(new InetSocketAddress(8081), 0);
+
             server.createContext("/metrics", exchange -> {
-                final String response = registry.scrape();
+                String response = registry.scrape();
                 exchange.sendResponseHeaders(200, response.getBytes().length);
-                try (final OutputStream output = exchange.getResponseBody()) {
+                try (OutputStream output = exchange.getResponseBody()) {
                     output.write(response.getBytes());
                 }
                 exchange.close();
             });
 
             new Thread(server::start, "micrometer-http").start();
-        } catch (final IOException exception) {
+        } catch (IOException exception) {
             throw new RuntimeException(exception);
         }
         return true;

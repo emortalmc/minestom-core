@@ -56,22 +56,24 @@ public final class BadgeGui {
     public BadgeGui(@NotNull Player player) {
         this.inventory = new Inventory(InventoryType.CHEST_4_ROW, TITLE);
 
-        final var badgesRequest = BadgeManagerProto.GetBadgesRequest.newBuilder().build();
-        final var playerBadgesRequest = BadgeManagerProto.GetPlayerBadgesRequest.newBuilder().setPlayerId(player.getUuid().toString()).build();
+        var badgesRequest = BadgeManagerProto.GetBadgesRequest.newBuilder().build();
+        var playerBadgesRequest = BadgeManagerProto.GetPlayerBadgesRequest.newBuilder().setPlayerId(player.getUuid().toString()).build();
 
         final BadgeManagerProto.GetBadgesResponse badges;
         final BadgeManagerProto.GetPlayerBadgesResponse playerBadges;
         try {
-            badges = badgeService.getBadges(badgesRequest).get();
-            playerBadges = badgeService.getPlayerBadges(playerBadgesRequest).get();
+            badges = this.badgeService.getBadges(badgesRequest).get();
+            playerBadges = this.badgeService.getPlayerBadges(playerBadgesRequest).get();
         } catch (final InterruptedException | ExecutionException exception) {
             throw new RuntimeException(exception);
         }
 
-        final Set<String> ownedBadgeIds = playerBadges.getBadgesList().stream().map(Badge::getId).collect(Collectors.toUnmodifiableSet());
+        Set<String> ownedBadgeIds = playerBadges.getBadgesList().stream()
+                .map(Badge::getId)
+                .collect(Collectors.toUnmodifiableSet());
 
         boolean canChangeActive = true;
-        for (final Badge badge : badges.getBadgesList()) {
+        for (var badge : badges.getBadgesList()) {
             if (badge.getRequired() && ownedBadgeIds.contains(badge.getId())) { // badge is required and player owns it
                 canChangeActive = false;
                 break;
@@ -79,54 +81,53 @@ public final class BadgeGui {
         }
         this.canChangeActive = canChangeActive;
 
-        drawInventory(badges, ownedBadgeIds, playerBadges.getActiveBadgeId());
-        inventory.addInventoryCondition(this::onClick);
-        player.openInventory(inventory);
+        this.drawInventory(badges, ownedBadgeIds, playerBadges.getActiveBadgeId());
+        this.inventory.addInventoryCondition(this::onClick);
+        player.openInventory(this.inventory);
     }
 
     private void drawInventory(@NotNull BadgeManagerProto.GetBadgesResponse badgesResp,
                                @NotNull Set<String> ownedBadgeIds, String activeBadgeId) {
-
-        final List<Badge> badges = badgesResp.getBadgesList().stream()
+        List<Badge> badges = badgesResp.getBadgesList().stream()
                 .sorted(Comparator.comparingLong(Badge::getPriority))
                 .toList();
 
         for (int i = 0; i < badges.size(); i++) {
-            final Badge badge = badges.get(i);
+            Badge badge = badges.get(i);
 
-            final boolean isOwned = ownedBadgeIds.contains(badge.getId());
-            final boolean isActive = badge.getId().equals(activeBadgeId);
+            boolean isOwned = ownedBadgeIds.contains(badge.getId());
+            boolean isActive = badge.getId().equals(activeBadgeId);
 
-            inventory.setItemStack(i, createItemStack(badge, isOwned, isActive));
+            this.inventory.setItemStack(i, this.createItemStack(badge, isOwned, isActive));
         }
     }
 
     private void onClick(Player clicker, int slot, ClickType clickType, InventoryConditionResult result) {
-        if (slot < 0 || slot >= inventory.getSize()) return;
+        if (slot < 0 || slot >= this.inventory.getSize()) return;
 
-        final ItemStack clickedItem = inventory.getItemStack(slot);
+        ItemStack clickedItem = this.inventory.getItemStack(slot);
         if (clickedItem.isAir()) return;
 
         result.setCancel(true);
 
-        if (!canChangeActive) {
+        if (!this.canChangeActive) {
             clicker.sendMessage(CLICK_CANNOT_CHANGE_ACTIVE);
             return;
         }
 
-        final boolean isUnlocked = clickedItem.meta().getTag(BADGE_UNLOCKED_TAG);
-        final boolean isActive = clickedItem.meta().getTag(BADGE_ACTIVE_TAG);
+        boolean isUnlocked = clickedItem.meta().getTag(BADGE_UNLOCKED_TAG);
+        boolean isActive = clickedItem.meta().getTag(BADGE_ACTIVE_TAG);
         if (!isUnlocked || isActive) return;
 
-        final String badgeId = clickedItem.meta().getTag(BADGE_ID_TAG);
-        final var setPlayerBadgeRequest = BadgeManagerProto.SetActivePlayerBadgeRequest.newBuilder()
+        String badgeId = clickedItem.meta().getTag(BADGE_ID_TAG);
+        var setPlayerBadgeRequest = BadgeManagerProto.SetActivePlayerBadgeRequest.newBuilder()
                 .setPlayerId(clicker.getUuid().toString())
                 .setBadgeId(badgeId)
                 .build();
 
-        Futures.addCallback(badgeService.setActivePlayerBadge(setPlayerBadgeRequest), FunctionalFutureCallback.create(
+        Futures.addCallback(this.badgeService.setActivePlayerBadge(setPlayerBadgeRequest), FunctionalFutureCallback.create(
                 unused -> {
-                    final String badgeName = clickedItem.meta().getTag(BADGE_NAME_TAG);
+                    String badgeName = clickedItem.meta().getTag(BADGE_NAME_TAG);
                     clicker.sendMessage(Component.text("Set active badge to " + badgeName, NamedTextColor.GREEN));
                     new BadgeGui(clicker); // Reopen the gui
                 },
@@ -138,14 +139,23 @@ public final class BadgeGui {
     }
 
     private @NotNull ItemStack createItemStack(@NotNull Badge badge, boolean isOwned, boolean isActive) {
-        final Badge.GuiItem guiItem = badge.getGuiItem();
+        Badge.GuiItem guiItem = badge.getGuiItem();
 
         final List<Component> lore = new ArrayList<>();
+
+        // Unlocked: Yes/No
         lore.add(MINI_MESSAGE.deserialize(isOwned ? UNLOCKED_LINE : NOT_UNLOCKED_LINE));
-        if (isOwned) lore.add(MINI_MESSAGE.deserialize(isActive ? ACTIVE_LINE : NOT_ACTIVE_LINE));
+
+        if (isOwned) {
+            // Active: Yes/No
+            lore.add(MINI_MESSAGE.deserialize(isActive ? ACTIVE_LINE : NOT_ACTIVE_LINE));
+        }
+
         lore.add(Component.empty());
 
-        guiItem.getLoreList().stream().map(MINI_MESSAGE::deserialize).forEach(lore::add);
+        for (var line : guiItem.getLoreList()) {
+            lore.add(MINI_MESSAGE.deserialize(line));
+        }
 
         if (isActive && badge.getRequired()) {
             lore.add(Component.empty());

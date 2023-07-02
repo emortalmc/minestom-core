@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 @ModuleData(name = "chat", softDependencies = {PermissionModule.class, MessagingModule.class}, required = false)
 public final class ChatModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatModule.class);
-    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     public ChatModule(@NotNull ModuleEnvironment environment) {
         super(environment);
@@ -29,26 +28,25 @@ public final class ChatModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        final MessagingModule messagingModule = getModule(MessagingModule.class);
-
+        var messagingModule = this.getModule(MessagingModule.class);
         if (messagingModule == null || messagingModule.getKafkaProducer() == null) {
             LOGGER.warn("Not enabling ChatModule, MessagingModule or KafkaProducer is null");
             return false;
         }
 
-        messagingModule.addListener(ChatMessageCreatedMessage.class, message -> {
-            final ChatMessage chatMessage = message.getMessage();
-            final var content = Placeholder.unparsed("content", chatMessage.getMessageContent());
-            Audiences.players().sendMessage(MINI_MESSAGE.deserialize(chatMessage.getMessage(), content));
+        messagingModule.addListener(ChatMessageCreatedMessage.class, messageEvent -> {
+            ChatMessage message = messageEvent.getMessage();
+            var content = Placeholder.unparsed("content", message.getMessageContent());
+            Audiences.players().sendMessage(MiniMessage.miniMessage().deserialize(message.getMessage(), content));
         });
 
-        final FriendlyKafkaProducer kafkaProducer = messagingModule.getKafkaProducer();
+        FriendlyKafkaProducer kafkaProducer = messagingModule.getKafkaProducer();
 
-        eventNode.addListener(PlayerChatEvent.class, event -> {
+        this.eventNode.addListener(PlayerChatEvent.class, event -> {
             event.setCancelled(true);
 
-            final Player player = event.getPlayer();
-            final ChatMessage message = ChatMessage.newBuilder()
+            Player player = event.getPlayer();
+            var message = ChatMessage.newBuilder()
                     .setMessage(event.getMessage())
                     .setSenderId(player.getUuid().toString())
                     .setSenderUsername(player.getUsername())

@@ -1,6 +1,6 @@
 package dev.emortal.minestom.core.module.kubernetes.command.agones;
 
-import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
+import dev.agones.sdk.SDKGrpc;
 import dev.emortal.minestom.core.utils.command.ExtraConditions;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.builder.Command;
@@ -11,24 +11,24 @@ import org.jetbrains.annotations.NotNull;
 
 public final class AgonesCommand extends Command {
 
-    public AgonesCommand(@NotNull KubernetesModule kubernetesModule) {
+    public AgonesCommand(@NotNull SDKGrpc.SDKStub sdk) {
         super("magones");
-        setCondition(ExtraConditions.hasPermission("command.agones"));
+        this.setCondition(ExtraConditions.hasPermission("command.agones"));
 
-        final SdkSubCommands sdkSubs = new SdkSubCommands(kubernetesModule.getSdk());
+        var sdkSubs = new SdkSubCommands(sdk);
 
-        final ArgumentLiteral get = new ArgumentLiteral("get");
-        final ArgumentLiteral set = new ArgumentLiteral("set");
-        final ArgumentString key = new ArgumentString("key");
-        final ArgumentString metaValue = new ArgumentString("metaValue");
+        var get = new ArgumentLiteral("get");
+        var set = new ArgumentLiteral("set");
+        var key = new ArgumentString("key");
+        var metaValue = new ArgumentString("metaValue");
 
-        addSyntax(sdkSubs::executeGetGameServer, get, new ArgumentLiteral("gameserver"));
-        addSyntax(sdkSubs::executeReserve, new ArgumentLiteral("reserve"), new ArgumentTime("duration"));
-        addSyntax(sdkSubs::executeAllocate, new ArgumentLiteral("allocate"));
-        addSyntax(sdkSubs::executeSetAnnotation, set, new ArgumentLiteral("annotation"), key, metaValue);
-        addSyntax(sdkSubs::executeSetLabel, set, new ArgumentLiteral("label"), key, metaValue);
-        addSyntax(sdkSubs::executeShutdown, new ArgumentLiteral("shutdown"));
-        addSyntax(sdkSubs::executeWatchGameserver, new ArgumentLiteral("watch"), new ArgumentLiteral("gameserver"));
+        this.addSyntax(sdkSubs::executeGetGameServer, get, new ArgumentLiteral("gameserver"));
+        this.addSyntax(sdkSubs::executeReserve, new ArgumentLiteral("reserve"), new ArgumentTime("duration"));
+        this.addSyntax(sdkSubs::executeAllocate, new ArgumentLiteral("allocate"));
+        this.addSyntax(sdkSubs::executeSetAnnotation, set, new ArgumentLiteral("annotation"), key, metaValue);
+        this.addSyntax(sdkSubs::executeSetLabel, set, new ArgumentLiteral("label"), key, metaValue);
+        this.addSyntax(sdkSubs::executeShutdown, new ArgumentLiteral("shutdown"));
+        this.addSyntax(sdkSubs::executeWatchGameserver, new ArgumentLiteral("watch"), new ArgumentLiteral("gameserver"));
     }
 
     public enum RequestStatus {

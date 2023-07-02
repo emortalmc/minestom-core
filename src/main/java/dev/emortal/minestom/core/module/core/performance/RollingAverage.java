@@ -20,47 +20,50 @@ public final class RollingAverage {
 
     public int sampleCount() {
         synchronized (this) {
-            return samples.size();
+            return this.samples.size();
         }
     }
 
     public void addSample(@NotNull BigDecimal sample) {
         synchronized (this) {
-            sum = sum.add(sample);
-            samples.add(sample);
-            if (samples.size() > size) {
+            this.sum = this.sum.add(sample);
+            this.samples.add(sample);
+            if (this.samples.size() > this.size) {
                 // Remove old samples from the queue and sum so we only keep max. size samples
-                sum = sum.subtract(samples.remove());
+                this.sum = this.sum.subtract(this.samples.remove());
             }
         }
     }
 
     public double mean() {
+        final int sampleCount;
         synchronized (this) {
-            if (samples.isEmpty()) return 0;
-            final BigDecimal divisor = BigDecimal.valueOf(samples.size());
-            return sum.divide(divisor, 30, RoundingMode.HALF_UP).doubleValue();
+            if (this.samples.isEmpty()) return 0;
+            sampleCount = this.samples.size();
         }
+
+        // mean = sum / count
+        return this.sum.divide(BigDecimal.valueOf(sampleCount), 30, RoundingMode.HALF_UP).doubleValue();
     }
 
     public double min() {
+        BigDecimal min = null;
         synchronized (this) {
-            BigDecimal min = null;
-            for (final BigDecimal sample : samples) {
+            for (var sample : this.samples) {
                 if (min == null | sample.compareTo(min) < 0) min = sample;
             }
-            return min == null ? 0 : min.doubleValue();
         }
+        return min == null ? 0 : min.doubleValue();
     }
 
     public double max() {
+        BigDecimal max = null;
         synchronized (this) {
-            BigDecimal max = null;
-            for (final BigDecimal sample : samples) {
+            for (var sample : this.samples) {
                 if (max == null | sample.compareTo(max) > 0) max = sample;
             }
-            return max == null ? 0 : max.doubleValue();
         }
+        return max == null ? 0 : max.doubleValue();
     }
 
     /**
@@ -74,12 +77,12 @@ public final class RollingAverage {
 
         final BigDecimal[] sortedSamples;
         synchronized (this) {
-            if (samples.isEmpty()) return 0;
-            sortedSamples = samples.toArray(new BigDecimal[0]);
+            if (this.samples.isEmpty()) return 0;
+            sortedSamples = this.samples.toArray(new BigDecimal[0]);
         }
         Arrays.sort(sortedSamples);
 
-        final int rank = (int) Math.ceil(percentile * (sortedSamples.length - 1));
+        int rank = (int) Math.ceil(percentile * (sortedSamples.length - 1));
         return sortedSamples[rank].doubleValue();
     }
 }

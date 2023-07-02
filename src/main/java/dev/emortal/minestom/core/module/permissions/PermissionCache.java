@@ -30,10 +30,10 @@ import java.util.stream.Collectors;
 public class PermissionCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionCache.class);
 
+    private final PermissionServiceGrpc.PermissionServiceFutureStub permissionService;
+
     private final Map<String, CachedRole> roleCache = Collections.synchronizedMap(new LinkedHashMap<>());
     private final Map<UUID, User> userCache = new ConcurrentHashMap<>();
-
-    private final PermissionServiceGrpc.PermissionServiceFutureStub permissionService;
 
     public PermissionCache(PermissionServiceGrpc.PermissionServiceFutureStub permissionService, EventNode<Event> eventNode) {
         this.permissionService = permissionService;
@@ -76,6 +76,7 @@ public class PermissionCache {
 
                 permissions.addAll(role.permissions());
             }
+
             player.getAllPermissions().clear();
             player.getAllPermissions().addAll(permissions);
         } catch (InterruptedException | ExecutionException exception) {
@@ -126,14 +127,7 @@ public class PermissionCache {
      * @param roleResponse the role to add (from a proto message)
      */
     void addRole(@NotNull Role roleResponse) {
-        CachedRole role = new CachedRole(
-                roleResponse.getId(),
-                Sets.newConcurrentHashSet(roleResponse.getPermissionsList().stream()
-                        .filter(node -> node.getState() == PermissionNode.PermissionState.ALLOW)
-                        .map(protoNode -> new Permission(protoNode.getNode()))
-                        .collect(Collectors.toSet())),
-                roleResponse.getPriority(), roleResponse.getDisplayName()
-        );
+        CachedRole role = CachedRole.fromRole(roleResponse);
 
         this.roleCache.put(roleResponse.getId(), role);
 
@@ -199,6 +193,19 @@ public class PermissionCache {
 
     public record CachedRole(@NotNull String id, @NotNull Set<Permission> permissions, int priority,
                              @NotNull String displayName) implements Comparable<CachedRole> {
+
+        static CachedRole fromRole(@NotNull Role role) {
+            return new CachedRole(
+                    role.getId(),
+                    role.getPermissionsList().stream()
+                            .filter(node -> node.getState() == PermissionNode.PermissionState.ALLOW)
+                            .map(protoNode -> new Permission(protoNode.getNode()))
+                            .collect(Collectors.toCollection(Sets::newConcurrentHashSet)),
+                    role.getPriority(),
+                    role.getDisplayName()
+            );
+        }
+
         @Override
         public int compareTo(@NotNull PermissionCache.CachedRole o) {
             return Integer.compare(this.priority, o.priority);

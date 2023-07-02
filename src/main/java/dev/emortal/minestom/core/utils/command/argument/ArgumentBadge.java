@@ -32,17 +32,17 @@ public final class ArgumentBadge {
     }
 
     public static @NotNull ArgumentWord create(@NotNull BadgeManagerGrpc.BadgeManagerFutureStub badgeManager, @NotNull String id, boolean onlyOwned) {
-        final ArgumentBadge handlerArgument = new ArgumentBadge(badgeManager, id, onlyOwned);
-        final ArgumentWord createdArgument = new ArgumentWord(id);
+        var handlerArgument = new ArgumentBadge(badgeManager, id, onlyOwned);
+        var createdArgument = new ArgumentWord(id);
 
         createdArgument.setSuggestionCallback(handlerArgument::suggestionCallback);
         return createdArgument;
     }
 
     public void suggestionCallback(@NotNull CommandSender sender, @NotNull CommandContext context, @NotNull Suggestion suggestion) {
-        String input = context.getRaw(id);
+        String input = context.getRaw(this.id);
 
-        if (onlyOwned && !(sender instanceof Player)) {
+        if (this.onlyOwned && !(sender instanceof Player)) {
             LOGGER.error("Validation misconfiguration: onlyOwned is true but sender is not a player");
             return;
         }
@@ -51,9 +51,8 @@ public final class ArgumentBadge {
             input = "";
         }
 
-        if (onlyOwned) {
-            final Player player = (Player) sender;
-            handleOwnedBadgesSuggestion(player, input, suggestion);
+        if (this.onlyOwned) {
+            handleOwnedBadgesSuggestion((Player) sender, input, suggestion);
         } else {
             handleDefaultSuggestion(input, suggestion);
         }
@@ -61,27 +60,26 @@ public final class ArgumentBadge {
 
     private void handleDefaultSuggestion(@NotNull String input, @NotNull Suggestion suggestion) {
         try {
-            final var response = badgeManager.getBadges(BadgeManagerProto.GetBadgesRequest.getDefaultInstance()).get();
+            var response = this.badgeManager.getBadges(BadgeManagerProto.GetBadgesRequest.getDefaultInstance()).get();
             addBadgeSuggestions(suggestion, response.getBadgesList(), input);
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to get badges", e);
+        } catch (InterruptedException | ExecutionException exception) {
+            LOGGER.error("Failed to get badges", exception);
         }
     }
 
     private void handleOwnedBadgesSuggestion(@NotNull Player sender, @NotNull String input, @NotNull Suggestion suggestion) {
         try {
-            final var request = BadgeManagerProto.GetPlayerBadgesRequest.newBuilder().setPlayerId(sender.getUuid().toString()).build();
-            addBadgeSuggestions(suggestion, badgeManager.getPlayerBadges(request).get().getBadgesList(), input);
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to get badges", e);
+            var request = BadgeManagerProto.GetPlayerBadgesRequest.newBuilder().setPlayerId(sender.getUuid().toString()).build();
+            addBadgeSuggestions(suggestion, this.badgeManager.getPlayerBadges(request).get().getBadgesList(), input);
+        } catch (InterruptedException | ExecutionException exception) {
+            LOGGER.error("Failed to get badges", exception);
         }
     }
 
     private void addBadgeSuggestions(@NotNull Suggestion suggestion, @NotNull List<Badge> badges, @NotNull String filter) {
         badges.stream()
                 .filter(badge -> badge.getId().toLowerCase().startsWith(filter.toLowerCase()))
-                .map(badge -> new SuggestionEntry(badge.getId(),
-                        Component.text(badge.getFriendlyName() + ": " + badge.getChatString())))
+                .map(badge -> new SuggestionEntry(badge.getId(), Component.text(badge.getFriendlyName() + ": " + badge.getChatString())))
                 .forEach(suggestion::addEntry);
     }
 }

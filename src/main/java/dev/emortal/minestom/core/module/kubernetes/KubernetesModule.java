@@ -17,6 +17,7 @@ import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.util.Config;
 import net.minestom.server.MinecraftServer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,6 @@ public final class KubernetesModule extends Module {
 
     public KubernetesModule(@NotNull ModuleEnvironment environment, @NotNull AgonesSDKProto.KeyValue... additionalLabels) {
         super(environment);
-
         this.additionalLabels = additionalLabels;
     }
 
@@ -58,10 +58,10 @@ public final class KubernetesModule extends Module {
         if (KUBERNETES_ENABLED) {
             try {
                 this.apiClient = Config.defaultClient();
-                Configuration.setDefaultApiClient(apiClient);
+                Configuration.setDefaultApiClient(this.apiClient);
 
-                this.protoClient = new ProtoClient(apiClient);
-            } catch (final IOException exception) {
+                this.protoClient = new ProtoClient(this.apiClient);
+            } catch (IOException exception) {
                 LOGGER.error("Failed to initialise Kubernetes client", exception);
                 return false;
             }
@@ -71,7 +71,7 @@ public final class KubernetesModule extends Module {
         MinecraftServer.getCommandManager().register(new CurrentServerCommand());
 
         // agones
-        if (AGONES_SDK_ENABLED) loadAgones();
+        if (AGONES_SDK_ENABLED) this.loadAgones();
 
         return true;
     }
@@ -79,60 +79,60 @@ public final class KubernetesModule extends Module {
     private void loadAgones() {
         this.sdk = SDKGrpc.newStub(ManagedChannelBuilder.forAddress(AGONES_ADDRESS, AGONES_GRPC_PORT).usePlaintext().build());
 
-        MinecraftServer.getCommandManager().register(new AgonesCommand(this));
+        MinecraftServer.getCommandManager().register(new AgonesCommand(this.sdk));
 
-        for (final AgonesSDKProto.KeyValue label : additionalLabels) {
-            sdk.setLabel(label, new IgnoredStreamObserver<>());
+        for (var label : this.additionalLabels) {
+            this.sdk.setLabel(label, new IgnoredStreamObserver<>());
             LOGGER.info("Set Agones label {} to {}", label.getKey(), label.getValue());
         }
 
-        final var protocolVersion = AgonesSDKProto.KeyValue.newBuilder()
+        var protocolVersion = AgonesSDKProto.KeyValue.newBuilder()
                 .setKey("emc-protocol-version")
                 .setValue(String.valueOf(MinecraftServer.PROTOCOL_VERSION))
                 .build();
-        final var versionName = AgonesSDKProto.KeyValue.newBuilder()
+        var versionName = AgonesSDKProto.KeyValue.newBuilder()
                 .setKey("emc-version-name")
                 .setValue(MinecraftServer.VERSION_NAME)
                 .build();
 
-        sdk.setAnnotation(protocolVersion, new IgnoredStreamObserver<>());
-        sdk.setAnnotation(versionName, new IgnoredStreamObserver<>());
+        this.sdk.setAnnotation(protocolVersion, new IgnoredStreamObserver<>());
+        this.sdk.setAnnotation(versionName, new IgnoredStreamObserver<>());
 
         LOGGER.info("Set Agones version annotations. [protocol={}, version={}]", MinecraftServer.PROTOCOL_VERSION, MinecraftServer.VERSION_NAME);
     }
 
     @Override
     public void onUnload() {
-        if (AGONES_SDK_ENABLED) unloadAgones();
+        if (AGONES_SDK_ENABLED) this.unloadAgones();
     }
 
     private void unloadAgones() {
         LOGGER.info("Marking server as shutdown for Agones");
         AgonesUtils.shutdownHealthTask();
-        sdk.shutdown(AgonesSDKProto.Empty.getDefaultInstance(), new IgnoredStreamObserver<>());
+        this.sdk.shutdown(AgonesSDKProto.Empty.getDefaultInstance(), new IgnoredStreamObserver<>());
     }
 
     @Override
     public void onReady() {
-        if (AGONES_SDK_ENABLED) readyAgones();
+        if (AGONES_SDK_ENABLED) this.readyAgones();
     }
 
     private void readyAgones() {
         LOGGER.info("Marking server as READY for Agones");
 
-        AgonesUtils.startHealthTask(sdk, 10, TimeUnit.SECONDS);
-        sdk.ready(AgonesSDKProto.Empty.getDefaultInstance(), new IgnoredStreamObserver<>());
+        AgonesUtils.startHealthTask(this.sdk, 10, TimeUnit.SECONDS);
+        this.sdk.ready(AgonesSDKProto.Empty.getDefaultInstance(), new IgnoredStreamObserver<>());
     }
 
-    public ApiClient getApiClient() {
+    public @Nullable ApiClient getApiClient() {
         return this.apiClient;
     }
 
-    public ProtoClient getProtoClient() {
+    public @Nullable ProtoClient getProtoClient() {
         return this.protoClient;
     }
 
-    public @NotNull SDKGrpc.SDKStub getSdk() {
+    public @Nullable SDKGrpc.SDKStub getSdk() {
         return this.sdk;
     }
 }

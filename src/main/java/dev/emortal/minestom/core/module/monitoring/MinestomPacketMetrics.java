@@ -19,17 +19,17 @@ public final class MinestomPacketMetrics implements MeterBinder {
 
     @Override
     public void bindTo(@NotNull MeterRegistry registry) {
-        final Counter packetsSent = Counter.builder("minestom.packets")
+        var packetsSent = Counter.builder("minestom.packets")
                 .tag("direction", "out")
                 .description("The amount of packets sent by the server")
                 .register(registry);
 
-        final Counter packetsReceived = Counter.builder("minestom.packets")
+        var packetsReceived = Counter.builder("minestom.packets")
                 .tag("direction", "in")
                 .description("The amount of packets received by the server")
                 .register(registry);
 
-        eventNode.addListener(PlayerPacketEvent.class, event -> packetsReceived.increment());
-        eventNode.addListener(PlayerPacketOutEvent.class, event -> packetsSent.increment());
+        this.eventNode.addListener(PlayerPacketEvent.class, event -> packetsReceived.increment());
+        this.eventNode.addListener(PlayerPacketOutEvent.class, event -> packetsSent.increment());
     }
 }

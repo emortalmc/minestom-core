@@ -14,7 +14,6 @@ import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandContext;
 import net.minestom.server.command.builder.arguments.ArgumentLiteral;
-import net.minestom.server.command.builder.arguments.ArgumentWord;
 import net.minestom.server.command.builder.condition.Conditions;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -31,26 +30,26 @@ public final class BadgeCommand extends Command {
     public BadgeCommand() {
         super("badge");
 
-        setCondition(Conditions::playerOnly);
-        setDefaultExecutor((sender, context) -> new BadgeGui((Player) sender));
+        this.setCondition(Conditions::playerOnly);
+        this.setDefaultExecutor((sender, context) -> new BadgeGui((Player) sender));
 
-        final ArgumentLiteral setArgument = new ArgumentLiteral("set");
-        final ArgumentWord badgeArgument = ArgumentBadge.create(badgeManager, "badge", true);
+        var setArgument = new ArgumentLiteral("set");
+        var badgeArgument = ArgumentBadge.create(this.badgeManager, "badge", true);
 
-        addConditionalSyntax(Conditions::playerOnly, this::executeSetCurrentBadge, setArgument, badgeArgument);
-        addSubcommand(new BadgeAdminSubcommand(badgeManager));
+        this.addConditionalSyntax(Conditions::playerOnly, this::executeSetCurrentBadge, setArgument, badgeArgument);
+        this.addSubcommand(new BadgeAdminSubcommand(this.badgeManager));
     }
 
     private void executeSetCurrentBadge(CommandSender sender, CommandContext context) {
-        final String badgeId = context.get("badge");
-        final Player player = (Player) sender;
+        String badgeId = context.get("badge");
+        Player player = (Player) sender;
 
-        final var request = BadgeManagerProto.SetActivePlayerBadgeRequest.newBuilder()
+        var request = BadgeManagerProto.SetActivePlayerBadgeRequest.newBuilder()
                 .setBadgeId(badgeId)
                 .setPlayerId(player.getUuid().toString())
                 .build();
 
-        Futures.addCallback(badgeManager.setActivePlayerBadge(request), new SetCurrentBadgeCallback(sender, badgeId), ForkJoinPool.commonPool());
+        Futures.addCallback(this.badgeManager.setActivePlayerBadge(request), new SetCurrentBadgeCallback(sender, badgeId), ForkJoinPool.commonPool());
     }
 
     private record SetCurrentBadgeCallback(@NotNull CommandSender sender,
@@ -58,12 +57,12 @@ public final class BadgeCommand extends Command {
 
         @Override
         public void onSuccess(@NotNull BadgeManagerProto.SetActivePlayerBadgeResponse result) {
-            sender.sendMessage(Component.text("Set your badge to " + badgeId));
+            this.sender.sendMessage(Component.text("Set your badge to " + this.badgeId));
         }
 
         @Override
         public void onFailure(@NotNull Throwable throwable) {
-            final Status status = StatusProto.fromThrowable(throwable);
+            Status status = StatusProto.fromThrowable(throwable);
             if (status == null || status.getDetailsCount() == 0) {
                 LOGGER.error("Failed to set badge", throwable);
                 return;
@@ -72,16 +71,16 @@ public final class BadgeCommand extends Command {
             final BadgeManagerProto.SetActivePlayerBadgeErrorResponse response;
             try {
                 response = status.getDetails(0).unpack(BadgeManagerProto.SetActivePlayerBadgeErrorResponse.class);
-            } catch (final InvalidProtocolBufferException exception) {
+            } catch (InvalidProtocolBufferException exception) {
                 LOGGER.error("Failed to set badge", throwable);
                 return;
             }
 
             switch (response.getReason()) {
-                case PLAYER_DOESNT_HAVE_BADGE -> sender.sendMessage(Component.text("You don't have that badge"));
+                case PLAYER_DOESNT_HAVE_BADGE -> this.sender.sendMessage(Component.text("You don't have that badge"));
                 default -> {
                     LOGGER.error("Failed to set badge", throwable);
-                    sender.sendMessage(Component.text("Failed to set badge"));
+                    this.sender.sendMessage(Component.text("Failed to set badge"));
                 }
             }
         }

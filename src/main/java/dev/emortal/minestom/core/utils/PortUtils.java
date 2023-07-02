@@ -17,12 +17,12 @@ public final class PortUtils {
      * @return True if the port is used, false if not.
      */
     public static boolean isPortUsed(@NotNull String address, int port) {
-        try (final Socket socket = new Socket(address, port)) {
+        try (var socket = new Socket(address, port)) {
             socket.setSoTimeout(10);
             return true;
-        } catch (final ConnectException exception) {
+        } catch (ConnectException exception) {
             return false;
-        } catch (final IOException exception) {
+        } catch (IOException exception) {
             LOGGER.error("Error while checking if port is used", exception);
             return false;
         }

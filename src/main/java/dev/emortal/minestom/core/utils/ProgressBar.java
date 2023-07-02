@@ -9,11 +9,13 @@ public final class ProgressBar {
 
     public static Component create(float percentage, int charCount, @NotNull String character, @NotNull RGBLike completeColour,
                                    @NotNull RGBLike incompleteColour) {
-        final int completeCharacters = (int) Math.ceil((percentage * charCount));
-        final int incompleteCharacters = (int) Math.floor((1 - percentage) * charCount);
+        int completeCharacters = (int) Math.ceil((percentage * charCount));
+        int incompleteCharacters = (int) Math.floor((1 - percentage) * charCount);
 
-        return Component.text(character.repeat(completeCharacters), TextColor.color(completeColour))
-                .append(Component.text(character.repeat(incompleteCharacters), TextColor.color(incompleteColour)));
+        return Component.text()
+                .append(Component.text(character.repeat(completeCharacters), TextColor.color(completeColour)))
+                .append(Component.text(character.repeat(incompleteCharacters), TextColor.color(incompleteColour)))
+                .build();
     }
 
     private ProgressBar() {
