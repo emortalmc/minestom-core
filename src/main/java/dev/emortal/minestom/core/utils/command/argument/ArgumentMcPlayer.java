@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 
-public class ArgumentMcPlayer {
+public final class ArgumentMcPlayer {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArgumentMcPlayer.class);
 
     private final @NotNull String id;
@@ -39,11 +39,8 @@ public class ArgumentMcPlayer {
                                                                @NotNull McPlayerGrpc.McPlayerFutureStub mcPlayerService,
                                                                @Nullable McPlayerProto.SearchPlayersByUsernameRequest.FilterMethod filterMethod) {
 
-        final ArgumentMcPlayer argument = new ArgumentMcPlayer(id, mcPlayerService, filterMethod);
-
-        return new ArgumentWord(id)
-                .map(argument::mapInput)
-                .setSuggestionCallback(argument::suggestionCallback);
+        var argument = new ArgumentMcPlayer(id, mcPlayerService, filterMethod);
+        return new ArgumentWord(id).map(argument::mapInput).setSuggestionCallback(argument::suggestionCallback);
     }
 
     private CompletableFuture<McPlayer> mapInput(@Nullable String input) {
@@ -51,7 +48,7 @@ public class ArgumentMcPlayer {
             return CompletableFuture.completedFuture(null);
         }
 
-        final var playerReqFuture = mcPlayerService.getPlayerByUsername(McPlayerProto.PlayerUsernameRequest.newBuilder().setUsername(input).build());
+        var playerReqFuture = this.mcPlayerService.getPlayerByUsername(McPlayerProto.PlayerUsernameRequest.newBuilder().setUsername(input).build());
 
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -68,10 +65,10 @@ public class ArgumentMcPlayer {
     private void suggestionCallback(CommandSender sender, CommandContext context, Suggestion suggestion) {
         if (!(sender instanceof Player player)) return;
 
-        final String input = context.getRaw(this.id);
+        String input = context.getRaw(this.id);
         if (input == null || input.length() <= 2) return;
 
-        final var reqBuilder = McPlayerProto.SearchPlayersByUsernameRequest.newBuilder()
+        var reqBuilder = McPlayerProto.SearchPlayersByUsernameRequest.newBuilder()
                 .setIssuerId(player.getUuid().toString())
                 .setSearchUsername(input)
                 .setPageable(Pageable.newBuilder().setPage(0).setSize(15));
@@ -80,14 +77,14 @@ public class ArgumentMcPlayer {
             reqBuilder.setFilterMethod(this.filterMethod);
         }
 
-        final var searchReqFuture = this.mcPlayerService.searchPlayersByUsername(reqBuilder.build());
+        var searchReqFuture = this.mcPlayerService.searchPlayersByUsername(reqBuilder.build());
 
         try {
             final var response = searchReqFuture.get();
-            for (final McPlayer lPlayer : response.getPlayersList()) {
-                suggestion.addEntry(new SuggestionEntry(lPlayer.getCurrentUsername()));
+            for (McPlayer mcPlayer : response.getPlayersList()) {
+                suggestion.addEntry(new SuggestionEntry(mcPlayer.getCurrentUsername()));
             }
-        } catch (final ExecutionException | InterruptedException exception) {
+        } catch (ExecutionException | InterruptedException exception) {
             LOGGER.error("Failed to get player suggestions (input: {})", input, exception);
         }
     }

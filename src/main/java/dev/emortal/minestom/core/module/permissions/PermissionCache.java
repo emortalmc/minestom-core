@@ -15,6 +15,7 @@ import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.permission.Permission;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,10 +33,10 @@ import java.util.stream.Collectors;
 public class PermissionCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionCache.class);
 
+    private final PermissionServiceGrpc.PermissionServiceFutureStub permissionService;
+
     private final Map<String, CachedRole> roleCache = Collections.synchronizedMap(new LinkedHashMap<>());
     private final Map<UUID, User> userCache = new ConcurrentHashMap<>();
-
-    private final PermissionServiceGrpc.PermissionServiceFutureStub permissionService;
 
     public PermissionCache(PermissionServiceGrpc.PermissionServiceFutureStub permissionService, EventNode<Event> eventNode) {
         this.permissionService = permissionService;
@@ -43,27 +44,17 @@ public class PermissionCache {
         eventNode.addListener(PlayerDisconnectEvent.class, this::onDisconnect);
         eventNode.addListener(PlayerLoginEvent.class, this::onLogin);
 
-        loadRoles();
+        this.loadRoles();
     }
 
     private void loadRoles() {
         try {
-            final var response = permissionService.getAllRoles(PermissionProto.GetAllRolesRequest.getDefaultInstance()).get();
+            var response = this.permissionService.getAllRoles(PermissionProto.GetAllRolesRequest.getDefaultInstance()).get();
 
-            for (final Role role : response.getRolesList()) {
-                roleCache.put(
-                        role.getId(),
-                        new CachedRole(
-                                role.getId(),
-                                role.getPermissionsList().stream()
-                                        .filter(node -> node.getState() == PermissionNode.PermissionState.ALLOW)
-                                        .map(protoNode -> new Permission(protoNode.getNode()))
-                                        .collect(Collectors.toCollection(Sets::newConcurrentHashSet)),
-                                role.getPriority(), role.getDisplayName()
-                        )
-                );
+            for (Role role : response.getRolesList()) {
+                this.roleCache.put(role.getId(), CachedRole.fromRole(role));
             }
-        } catch (final InterruptedException | ExecutionException exception) {
+        } catch (InterruptedException | ExecutionException exception) {
             LOGGER.error("Couldn't load roles", exception);
         }
     }
@@ -75,61 +66,53 @@ public class PermissionCache {
      */
     public void loadUser(@NotNull Player player) {
         try {
-            final var request = PermissionProto.GetPlayerRolesRequest.newBuilder().setPlayerId(player.getUuid().toString()).build();
+            var request = PermissionProto.GetPlayerRolesRequest.newBuilder().setPlayerId(player.getUuid().toString()).build();
+            Set<String> roleIds = Sets.newConcurrentHashSet(this.permissionService.getPlayerRoles(request).get().getRoleIdsList());
 
-            final Set<String> roleIds = Sets.newConcurrentHashSet(permissionService.getPlayerRoles(request).get().getRoleIdsList());
-            final User user = new User(player.getUuid(), roleIds);
-            userCache.put(player.getUuid(), user);
+            var user = new User(player.getUuid(), roleIds);
+            this.userCache.put(player.getUuid(), user);
 
-            final Set<Permission> permissions = new HashSet<>();
-            for (final String roleId : roleIds) {
-                final CachedRole role = roleCache.get(roleId);
+            Set<Permission> permissions = new HashSet<>();
+            for (var roleId : roleIds) {
+                CachedRole role = this.roleCache.get(roleId);
                 if (role == null) continue;
 
                 permissions.addAll(role.getPermissions());
             }
+
             player.getAllPermissions().clear();
             player.getAllPermissions().addAll(permissions);
-        } catch (final InterruptedException | ExecutionException exception) {
+        } catch (InterruptedException | ExecutionException exception) {
             throw new RuntimeException(exception);
         }
     }
 
-    public Map<String, CachedRole> getRoleCache() {
-        return roleCache;
+    public @NotNull Map<String, CachedRole> getRoleCache() {
+        return this.roleCache;
     }
 
-    public Map<UUID, User> getUserCache() {
-        return userCache;
+    public @NotNull Map<UUID, User> getUserCache() {
+        return this.userCache;
     }
 
-    public Optional<CachedRole> getRole(String id) {
-        return Optional.ofNullable(roleCache.get(id));
+    public @NotNull Optional<CachedRole> getRole(@NotNull String id) {
+        return Optional.ofNullable(this.roleCache.get(id));
     }
 
-    public Optional<User> getUser(UUID id) {
-        return Optional.ofNullable(userCache.get(id));
+    public @NotNull Optional<User> getUser(@NotNull UUID id) {
+        return Optional.ofNullable(this.userCache.get(id));
     }
 
-    public void addRole(@NotNull Role roleResponse) {
-        final CachedRole role = new CachedRole(
-                roleResponse.getId(),
-                Sets.newConcurrentHashSet(roleResponse.getPermissionsList().stream()
-                        .filter(node -> node.getState() == PermissionNode.PermissionState.ALLOW)
-                        .map(protoNode -> new Permission(protoNode.getNode()))
-                        .collect(Collectors.toSet())),
-                roleResponse.getPriority(), roleResponse.getDisplayName()
-        );
-
-        roleCache.put(roleResponse.getId(), role);
+    public void addRole(@NotNull Role role) {
+        this.roleCache.put(role.getId(), CachedRole.fromRole(role));
     }
 
     public void onDisconnect(PlayerDisconnectEvent event) {
-        userCache.remove(event.getPlayer().getUuid());
+        this.userCache.remove(event.getPlayer().getUuid());
     }
 
     public void onLogin(PlayerLoginEvent event) {
-        loadUser(event.getPlayer());
+        this.loadUser(event.getPlayer());
     }
 
     public record User(UUID id, Set<String> roleIds) {
@@ -137,11 +120,23 @@ public class PermissionCache {
 
     public static final class CachedRole implements Comparable<CachedRole> {
 
+        static CachedRole fromRole(@NotNull Role role) {
+            return new CachedRole(
+                    role.getId(),
+                    role.getPermissionsList().stream()
+                            .filter(node -> node.getState() == PermissionNode.PermissionState.ALLOW)
+                            .map(protoNode -> new Permission(protoNode.getNode()))
+                            .collect(Collectors.toCollection(Sets::newConcurrentHashSet)),
+                    role.getPriority(),
+                    role.getDisplayName()
+            );
+        }
+
         private final String id;
         private final Set<Permission> permissions;
 
         private int priority;
-        private Component displayPrefix;
+        private @Nullable Component displayPrefix;
         private String displayName;
 
         public CachedRole(@NotNull String id, @NotNull Set<Permission> permissions, int priority, @NotNull String displayName) {
@@ -153,43 +148,43 @@ public class PermissionCache {
 
         @Override
         public int compareTo(@NotNull PermissionCache.CachedRole o) {
-            return Integer.compare(priority, o.priority);
+            return Integer.compare(this.priority, o.priority);
         }
 
         public String getId() {
-            return id;
+            return this.id;
         }
 
         public Set<Permission> getPermissions() {
-            return permissions;
+            return this.permissions;
         }
 
         public int getPriority() {
-            return priority;
+            return this.priority;
         }
 
         public void setPriority(int priority) {
             this.priority = priority;
         }
 
-        public Component getDisplayPrefix() {
-            return displayPrefix;
+        public @Nullable Component getDisplayPrefix() {
+            return this.displayPrefix;
         }
 
-        public void setDisplayPrefix(String displayPrefix) {
+        public void setDisplayPrefix(@NotNull String displayPrefix) {
             this.displayPrefix = MiniMessage.miniMessage().deserialize(displayPrefix);
         }
 
-        public String getDisplayName() {
-            return displayName;
+        public @NotNull String getDisplayName() {
+            return this.displayName;
         }
 
-        public void setDisplayName(String displayName) {
+        public void setDisplayName(@NotNull String displayName) {
             this.displayName = displayName;
         }
 
-        public Component getFormattedDisplayName(String username) {
-            return MiniMessage.miniMessage().deserialize(displayName, Placeholder.unparsed("username", username));
+        public @NotNull Component getFormattedDisplayName(@NotNull String username) {
+            return MiniMessage.miniMessage().deserialize(this.displayName, Placeholder.unparsed("username", username));
         }
     }
 }

@@ -26,23 +26,23 @@ public final class LiveConfigModule extends Module {
     }
 
     public LiveConfigCollection getConfigCollection() {
-        return configCollection;
+        return this.configCollection;
     }
 
     @Override
     public boolean onLoad() {
-        final KubernetesModule kubernetesModule = getModule(KubernetesModule.class);
-        final ApiClient apiClient = kubernetesModule != null ? kubernetesModule.getApiClient() : null;
+        var kubernetesModule = this.getModule(KubernetesModule.class);
+        ApiClient apiClient = kubernetesModule != null ? kubernetesModule.getApiClient() : null;
 
         // todo remove
         java.util.logging.Logger.getLogger(OkHttpClient.class.getName()).setLevel(Level.FINE);
 
         try {
-            configCollection = new LiveConfigCollection(apiClient);
-        } catch (final ApiException exception) {
+            this.configCollection = new LiveConfigCollection(apiClient);
+        } catch (ApiException exception) {
             LOGGER.error("Failed to load LiveConfigCollection\nbody: {}\nheaders: {}", exception.getResponseBody(), exception.getResponseHeaders(), exception);
             return false;
-        } catch (final IOException exception) {
+        } catch (IOException exception) {
             LOGGER.error("Failed to load LiveConfigCollection", exception);
             return false;
         }

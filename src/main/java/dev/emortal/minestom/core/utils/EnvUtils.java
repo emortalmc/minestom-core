@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 public final class EnvUtils {
 
     public static @NotNull String getOrDefault(@NotNull String envKey, @NotNull String defaultValue) {
-        final String envValue = System.getenv(envKey);
+        String envValue = System.getenv(envKey);
         return envValue == null || envValue.isEmpty() ? defaultValue : envValue;
     }
 
@@ -17,10 +17,12 @@ public final class EnvUtils {
      * @throws IllegalStateException if the environment variable is not set and the environment is production
      */
     public static @NotNull String getOrDefaultUnlessProd(@NotNull String envKey, @NotNull String defaultValue) {
-        final String envValue = System.getenv(envKey);
+        String envValue = System.getenv(envKey);
         if (envValue != null && !envValue.isEmpty()) return envValue;
 
-        if (Environment.isProduction()) throw new IllegalStateException("Environment variable " + envKey + " is not set");
+        if (Environment.isProduction()) {
+            throw new IllegalStateException("Environment variable " + envKey + " is not set");
+        }
 
         return defaultValue;
     }

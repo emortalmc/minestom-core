@@ -7,7 +7,6 @@ import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.core.badge.BadgeCommand;
 import dev.emortal.minestom.core.module.core.performance.PerformanceCommand;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.CommandManager;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,13 +20,14 @@ public final class CoreModule extends MinestomModule {
     @Override
     public boolean onLoad() {
         PlayerResolver.setPlatformUsernameResolver(username -> {
-            final Player player = MinecraftServer.getConnectionManager().getPlayer(username);
+            Player player = MinecraftServer.getConnectionManager().getPlayer(username);
             if (player == null) return null;
+
             return new PlayerResolver.CachedMcPlayer(player.getUuid(), player.getUsername(), player.isOnline());
         });
 
-        final CommandManager commandManager = MinecraftServer.getCommandManager();
-        commandManager.register(new PerformanceCommand(eventNode));
+        var commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(new PerformanceCommand(this.eventNode));
         commandManager.register(new BadgeCommand());
 
         return true;

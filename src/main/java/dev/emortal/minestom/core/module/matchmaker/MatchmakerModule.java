@@ -46,34 +46,33 @@ public final class MatchmakerModule extends MinestomModule {
         this.sessionCreator = sessionCreator;
 
         KurushimiUtils.registerParserRegistry();
-        this.messaging = getModule(MessagingModule.class);
-        this.liveConfig = getModule(LiveConfigModule.class);
+        this.messaging = this.getModule(MessagingModule.class);
+        this.liveConfig = this.getModule(LiveConfigModule.class);
     }
 
     @Override
     public boolean onLoad() {
-        if (matchmaker == null) {
+        if (this.matchmaker == null) {
             LOGGER.error("Matchmaker gRPC stub is not present but is required for MatchmakerModule");
             return false;
         }
 
-        final Optional<GameModeCollection> gameModeCollection = liveConfig.getConfigCollection().gameModes();
-        if (gameModeCollection.isEmpty()) {
+        GameModeCollection gameModes = this.liveConfig.getConfigCollection().gameModes().orElse(null);
+        if (gameModes == null) {
             LOGGER.error("GameModeCollection is not present in LiveConfigModule but is required for MatchmakerModule");
             return false;
         }
 
-        final CommandManager commandManager = MinecraftServer.getCommandManager();
-        commandManager.register(new QueueCommand(matchmaker, gameModeCollection.get()));
-        commandManager.register(new DequeueCommand(matchmaker));
+        var commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(new QueueCommand(this.matchmaker, gameModes));
+        commandManager.register(new DequeueCommand(this.matchmaker));
 
-        new MatchmakingSessionManager(eventNode, matchmaker, messaging, gameModeCollection.get(), sessionCreator);
+        new MatchmakingSessionManager(this.eventNode, this.matchmaker, this.messaging, gameModes, this.sessionCreator);
 
         return true;
     }
 
     @Override
     public void onUnload() {
-
     }
 }

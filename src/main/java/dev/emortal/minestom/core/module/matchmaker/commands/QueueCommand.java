@@ -45,32 +45,32 @@ public class QueueCommand extends Command {
         // Load the available gamemodes
         this.configs = gameModeCollection.getAllConfigs(this::handleUpdate);
 
-        setCondition(Conditions::playerOnly);
+        this.setCondition(Conditions::playerOnly);
 
-        final ArgumentStringArray modeArg = new ArgumentStringArray("mode");
+        var modeArg = new ArgumentStringArray("mode");
         modeArg.setSuggestionCallback((sender, context, suggestion) -> {
-            final String inputLower = context.getRaw("mode").toLowerCase();
+            String inputLower = context.getRaw("mode").toLowerCase();
 
-            Stream<String> stream = configs.stream()
+            Stream<String> configNames = this.configs.stream()
                     .filter(GameModeConfig::isEnabled)
                     .map(GameModeConfig::getFriendlyName);
 
             if (!inputLower.isEmpty() && !inputLower.isBlank() && inputLower.charAt(0) != 0) {
-                stream = stream.filter(name -> name.toLowerCase().startsWith(inputLower));
+                configNames = configNames.filter(name -> name.toLowerCase().startsWith(inputLower));
             }
 
-            stream.map(SuggestionEntry::new).forEach(suggestion::addEntry);
+            configNames.map(SuggestionEntry::new).forEach(suggestion::addEntry);
         });
 
-        addSyntax(this::execute, modeArg);
+        this.addSyntax(this::execute, modeArg);
     }
 
     private void execute(@NotNull CommandSender sender, @NotNull CommandContext context) {
-        final Player player = (Player) sender;
-        final String[] modeArg = context.get("mode");
-        final String modeName = String.join(" ", modeArg);
+        Player player = (Player) sender;
+        String[] modeArg = context.get("mode");
+        String modeName = String.join(" ", modeArg);
 
-        final GameModeConfig mode = configs.stream()
+        GameModeConfig mode = this.configs.stream()
                 .filter(GameModeConfig::isEnabled)
                 .filter(config -> config.getFriendlyName().equalsIgnoreCase(modeName))
                 .findFirst()
@@ -81,76 +81,76 @@ public class QueueCommand extends Command {
             return;
         }
 
-        final var request = QueueByPlayerRequest.newBuilder()
+        var request = QueueByPlayerRequest.newBuilder()
                 .setPlayerId(player.getUuid().toString())
                 .setGameModeId(mode.getId())
                 .build();
 
-        Futures.addCallback(matchmaker.queueByPlayer(request), new QueueCallback(sender, mode), ForkJoinPool.commonPool());
+        Futures.addCallback(this.matchmaker.queueByPlayer(request), new QueueCallback(sender, mode), ForkJoinPool.commonPool());
     }
 
     private record QueueCallback(@NotNull CommandSender sender, @NotNull GameModeConfig mode) implements FutureCallback<QueueByPlayerResponse> {
 
         @Override
         public void onSuccess(@NotNull QueueByPlayerResponse result) {
-            final var modeName = Placeholder.unparsed("mode", mode.getFriendlyName());
-            sender.sendMessage(MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_SUCCESS, modeName));
+            var modeName = Placeholder.unparsed("mode", this.mode.getFriendlyName());
+            this.sender.sendMessage(MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_SUCCESS, modeName));
         }
 
         @Override
         public void onFailure(@NotNull Throwable throwable) {
-            final Status status = StatusProto.fromThrowable(throwable);
+            Status status = StatusProto.fromThrowable(throwable);
             if (status == null || status.getDetailsCount() == 0) {
-                sender.sendMessage("An unknown error occurred while queuing for " + mode.getFriendlyName());
-                LOGGER.error("An unknown error occurred while queuing for " + mode.getFriendlyName(), throwable);
+                this.sender.sendMessage("An unknown error occurred while queuing for " + this.mode.getFriendlyName());
+                LOGGER.error("An unknown error occurred while queuing for " + this.mode.getFriendlyName(), throwable);
                 return;
             }
 
             final QueueByPlayerErrorResponse response;
             try {
                 response = status.getDetails(0).unpack(QueueByPlayerErrorResponse.class);
-            } catch (final InvalidProtocolBufferException exception) {
-                sender.sendMessage("An unknown error occurred while queuing for " + mode.getFriendlyName());
-                LOGGER.error("An unknown error occurred while queuing for " + mode.getFriendlyName(), exception);
+            } catch (InvalidProtocolBufferException exception) {
+                this.sender.sendMessage("An unknown error occurred while queuing for " + this.mode.getFriendlyName());
+                LOGGER.error("An unknown error occurred while queuing for " + this.mode.getFriendlyName(), exception);
                 return;
             }
 
-            final var modeName = Placeholder.unparsed("mode", mode.getFriendlyName());
-            final var message = switch (response.getReason()) {
+            var modeName = Placeholder.unparsed("mode", this.mode.getFriendlyName());
+            var message = switch (response.getReason()) {
                 case ALREADY_IN_QUEUE -> CommonMatchmakerError.QUEUE_ERR_ALREADY_IN_QUEUE;
                 case NO_PERMISSION -> MINI_MESSAGE.deserialize(CommonMatchmakerError.PLAYER_PERMISSION_DENIED);
                 case INVALID_MAP -> {
-                    LOGGER.error("Invalid map for gamemode " + mode.getFriendlyName());
+                    LOGGER.error("Invalid map for gamemode " + this.mode.getFriendlyName());
                     yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeName);
                 }
                 case PARTY_TOO_LARGE -> {
-                    final var max = Placeholder.unparsed("max", String.valueOf(mode.getPartyRestrictions().getMaxSize()));
+                    final var max = Placeholder.unparsed("max", String.valueOf(this.mode.getPartyRestrictions().getMaxSize()));
                     yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_PARTY_TOO_LARGE, modeName, max);
                 }
                 case INVALID_GAME_MODE -> {
-                    LOGGER.error("Invalid gamemode " + mode.getFriendlyName());
+                    LOGGER.error("Invalid gamemode " + this.mode.getFriendlyName());
                     yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeName);
                 }
                 case GAME_MODE_DISABLED -> {
-                    LOGGER.error("Gamemode " + mode.getFriendlyName() + " is disabled");
+                    LOGGER.error("Gamemode " + this.mode.getFriendlyName() + " is disabled");
                     yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeName);
                 }
                 default -> {
-                    LOGGER.error("An unknown error occurred while queuing for " + mode.getFriendlyName(), throwable);
+                    LOGGER.error("An unknown error occurred while queuing for " + this.mode.getFriendlyName(), throwable);
                     yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeName);
                 }
             };
-            sender.sendMessage(message);
+            this.sender.sendMessage(message);
         }
     }
 
     private void handleUpdate(@NotNull ConfigUpdate<GameModeConfig> update) {
         switch (update.getType()) {
-            case CREATE -> configs.add(update.getConfig());
-            case DELETE -> configs.removeIf(config -> config.getFileName().equals(update.getFileName()));
+            case CREATE -> this.configs.add(update.getConfig());
+            case DELETE -> this.configs.removeIf(config -> config.getFileName().equals(update.getFileName()));
             case MODIFY -> {
-                configs.removeIf(config -> config.getFileName().equals(update.getFileName()));
-                configs.add(update.getConfig());
+                this.configs.removeIf(config -> config.getFileName().equals(update.getFileName()));
+                this.configs.add(update.getConfig());
             }
         }
     }

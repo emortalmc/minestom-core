@@ -10,6 +10,7 @@ import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.network.player.PlayerConnection;
 import net.minestom.server.permission.Permission;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,18 +32,18 @@ public final class PermissionModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        if (!ENABLED) {
-            if (GRANT_ALL_PERMISSIONS) {
-                LOGGER.warn("Permission service is not available, granting all permissions");
-                eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new Permission("*")));
-            } else {
-                LOGGER.warn("Permission service is not available, denying all permissions");
-            }
-
+        if (ENABLED) {
+            this.permissionCache = new PermissionCache(GrpcStubCollection.getPermissionService().orElse(null), this.eventNode);
             return true;
         }
 
-        permissionCache = new PermissionCache(GrpcStubCollection.getPermissionService().orElse(null), eventNode);
+        if (GRANT_ALL_PERMISSIONS) {
+            LOGGER.warn("Permission service is not available, granting all permissions");
+            this.eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new Permission("*")));
+        } else {
+            LOGGER.warn("Permission service is not available, denying all permissions");
+        }
+
         return true;
     }
 
@@ -50,7 +51,7 @@ public final class PermissionModule extends MinestomModule {
     public void onUnload() {
     }
 
-    public PermissionCache getPermissionCache() {
+    public @Nullable PermissionCache getPermissionCache() {
         return this.permissionCache;
     }
 }

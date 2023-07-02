@@ -46,58 +46,52 @@ public final class MinestomMetrics implements MeterBinder {
                 .description("The amount of instances currently loaded")
                 .register(registry);
 
-        final MultiGauge chunkGauge = MultiGauge.builder("minestom.chunks")
+        var chunkGauge = MultiGauge.builder("minestom.chunks")
                 .description("The amount of chunks currently loaded per instance")
                 .baseUnit("chunks")
                 .register(registry);
 
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
-            final List<MultiGauge.Row<?>> list = new ArrayList<>();
-            for (final Instance instance : MinecraftServer.getInstanceManager().getInstances()) {
-                final var of = MultiGauge.Row.of(Tags.of("instance.id", instance.getUniqueId().toString()), instance.getChunks().size());
-                list.add(of);
-            }
-            chunkGauge.register(list);
-        }).repeat(5, ChronoUnit.SECONDS).delay(TaskSchedule.nextTick()).schedule();
-
-        final MultiGauge entityGauge = MultiGauge.builder("minestom.entities")
+        var entityGauge = MultiGauge.builder("minestom.entities")
                 .description("The amount of entities currently loaded per instance")
                 .baseUnit("entities")
                 .register(registry);
 
         MinecraftServer.getSchedulerManager().buildTask(() -> {
-            final List<MultiGauge.Row<?>> list = new ArrayList<>();
-            for (final Instance instance : MinecraftServer.getInstanceManager().getInstances()) {
-                final var of = MultiGauge.Row.of(Tags.of("instance.id", instance.getUniqueId().toString()), instance.getEntities().size());
-                list.add(of);
+            List<MultiGauge.Row<?>> chunkRows = new ArrayList<>();
+            List<MultiGauge.Row<?>> entityRows = new ArrayList<>();
+
+            for (Instance instance : MinecraftServer.getInstanceManager().getInstances()) {
+                var tags = Tags.of("instance.id", instance.getUniqueId().toString());
+
+                chunkRows.add(MultiGauge.Row.of(tags, instance.getChunks().size()));
+                entityRows.add(MultiGauge.Row.of(tags, instance.getEntities().size()));
             }
-            entityGauge.register(list);
+
+            chunkGauge.register(chunkRows);
+            entityGauge.register(entityRows);
         }).repeat(5, ChronoUnit.SECONDS).delay(TaskSchedule.nextTick()).schedule();
 
-        final Timer tickTimer = Timer.builder("minestom.tick.time")
+        var tickTimer = Timer.builder("minestom.tick.time")
                 .description("The time taken to process a tick, commonly referred to as MSPT")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .publishPercentileHistogram()
                 .register(registry);
 
-        eventNode.addListener(ServerTickMonitorEvent.class, event -> {
-            final TickMonitor monitor = event.getTickMonitor();
+        this.eventNode.addListener(ServerTickMonitorEvent.class, event -> {
+            TickMonitor monitor = event.getTickMonitor();
 
             // Multiply by 1,000,000 to convert ms -> ns and then convert to a long
             tickTimer.record((long) (monitor.getTickTime() * 1E6), TimeUnit.NANOSECONDS);
-            ticks.incrementAndGet();
+            this.ticks.incrementAndGet();
         });
 
-        final DistributionSummary tickPerSecond = DistributionSummary.builder("minestom.tick.per_second")
+        var tickPerSecond = DistributionSummary.builder("minestom.tick.per_second")
                 .description("The amount of ticks per second")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .publishPercentileHistogram()
                 .baseUnit("ticks")
                 .register(registry);
 
-        scheduler.scheduleAtFixedRate(() -> {
-            final int ticks = this.ticks.getAndSet(0);
-            tickPerSecond.record(ticks);
-        }, 1, 1, TimeUnit.SECONDS);
+        this.scheduler.scheduleAtFixedRate(() -> tickPerSecond.record(this.ticks.getAndSet(0)), 1, 1, TimeUnit.SECONDS);
     }
 }

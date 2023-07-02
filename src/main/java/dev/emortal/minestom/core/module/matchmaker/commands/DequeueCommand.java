@@ -30,51 +30,51 @@ public final class DequeueCommand extends Command {
         super("dequeue");
         this.matchmaker = matchmaker;
 
-        setCondition(Conditions::playerOnly);
-        setDefaultExecutor(this::execute);
+        this.setCondition(Conditions::playerOnly);
+        this.setDefaultExecutor(this::execute);
     }
 
     private void execute(CommandSender sender, CommandContext context) {
-        final Player player = (Player) sender;
-        final var request = DequeueByPlayerRequest.newBuilder().setPlayerId(player.getUuid().toString()).build();
-        Futures.addCallback(matchmaker.dequeueByPlayer(request), new DequeueCallback(player), ForkJoinPool.commonPool());
+        Player player = (Player) sender;
+        var request = DequeueByPlayerRequest.newBuilder().setPlayerId(player.getUuid().toString()).build();
+        Futures.addCallback(this.matchmaker.dequeueByPlayer(request), new DequeueCallback(player), ForkJoinPool.commonPool());
     }
 
     private record DequeueCallback(@NotNull Player player) implements FutureCallback<DequeueByPlayerResponse> {
 
         @Override
         public void onSuccess(@NotNull DequeueByPlayerResponse result) {
-            player.sendMessage(CommonMatchmakerError.DEQUEUE_SUCCESS);
+            this.player.sendMessage(CommonMatchmakerError.DEQUEUE_SUCCESS);
         }
 
         @Override
         public void onFailure(@NotNull Throwable throwable) {
-            final Status status = StatusProto.fromThrowable(throwable);
+            Status status = StatusProto.fromThrowable(throwable);
             if (status == null || status.getDetailsCount() == 0) {
-                player.sendMessage(CommonMatchmakerError.DEQUEUE_ERR_UNKNOWN);
-                LOGGER.error("Failed to dequeue player (id: {}): {}", player.getUuid(), throwable);
+                this.player.sendMessage(CommonMatchmakerError.DEQUEUE_ERR_UNKNOWN);
+                LOGGER.error("Failed to dequeue player (id: {})", this.player.getUuid(), throwable);
                 return;
             }
 
             final DequeueByPlayerErrorResponse response;
             try {
                 response = status.getDetails(0).unpack(DequeueByPlayerErrorResponse.class);
-            } catch (final InvalidProtocolBufferException exception) {
-                player.sendMessage(CommonMatchmakerError.DEQUEUE_ERR_UNKNOWN);
-                LOGGER.error("Failed to dequeue player (id: {}): {}", player.getUuid(), throwable);
+            } catch (InvalidProtocolBufferException exception) {
+                this.player.sendMessage(CommonMatchmakerError.DEQUEUE_ERR_UNKNOWN);
+                LOGGER.error("Failed to dequeue player (id: {})", this.player.getUuid(), throwable);
                 return;
             }
 
-            final var message = switch (response.getReason()) {
+            var message = switch (response.getReason()) {
                 case NOT_IN_QUEUE -> CommonMatchmakerError.DEQUEUE_ERR_NOT_IN_QUEUE;
                 case NO_PERMISSION -> CommonMatchmakerError.DEQUEUE_ERR_NO_PERMISSION;
                 case ALREADY_MARKED_FOR_DEQUEUE -> CommonMatchmakerError.DEQUEUE_ERR_ALREADY_MARKED;
                 default -> {
-                    LOGGER.error("Failed to dequeue player for unknown reason (id: {}, errorResponse: {}): {}", player.getUuid(), response, throwable);
+                    LOGGER.error("Failed to dequeue player for unknown reason (id: {}, errorResponse: {})", this.player.getUuid(), response, throwable);
                     yield CommonMatchmakerError.DEQUEUE_ERR_UNKNOWN;
                 }
             };
-            player.sendMessage(message);
+            this.player.sendMessage(message);
         }
     }
 }

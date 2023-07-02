@@ -31,33 +31,20 @@ public final class MessagingModule extends Module {
     private static final String KAFKA_HOST = EnvUtils.getOrDefaultUnlessProd("KAFKA_HOST", "127.0.0.1");
     private static final String KAFKA_PORT = EnvUtils.getOrDefaultUnlessProd("KAFKA_PORT", "9092");
 
-    private final @Nullable FriendlyKafkaConsumer kafkaConsumer;
-    private final @Nullable FriendlyKafkaProducer kafkaProducer;
+    private @Nullable FriendlyKafkaConsumer kafkaConsumer;
+    private @Nullable FriendlyKafkaProducer kafkaProducer;
 
     public MessagingModule(@NotNull ModuleEnvironment environment) {
         super(environment);
-
-        if (!Environment.isProduction() && !PortUtils.isPortUsed(KAFKA_HOST, Integer.parseInt(KAFKA_PORT))) {
-            LOGGER.warn("Kafka is not available, disabling Kafka consumer and producer");
-
-            this.kafkaConsumer = null;
-            this.kafkaProducer = null;
-            return;
-        }
-
-        final KafkaSettings kafkaSettings = new KafkaSettings()
-                .setAutoCommit(false)
-                .setBootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT);
-
-        this.kafkaConsumer = new FriendlyKafkaConsumer(kafkaSettings);
-        this.kafkaProducer = new FriendlyKafkaProducer(kafkaSettings);
     }
 
     public <T extends AbstractMessage> void addListener(@NotNull Class<T> messageType, @NotNull Consumer<T> listener) {
-        final MessageProtoConfig<T> parser = ProtoParserRegistry.getParser(messageType);
-        if (parser == null) throw new IllegalArgumentException("No parser found for message type " + messageType.getName());
+        MessageProtoConfig<T> parser = ProtoParserRegistry.getParser(messageType);
+        if (parser == null) {
+            throw new IllegalArgumentException("No parser found for message type " + messageType.getName());
+        }
 
-        if (kafkaConsumer != null) kafkaConsumer.addListener(messageType, listener);
+        if (this.kafkaConsumer != null) this.kafkaConsumer.addListener(messageType, listener);
     }
 
     public @Nullable FriendlyKafkaProducer getKafkaProducer() {
@@ -66,13 +53,28 @@ public final class MessagingModule extends Module {
 
     @Override
     public boolean onLoad() {
+        if (!Environment.isProduction() && !PortUtils.isPortUsed(KAFKA_HOST, Integer.parseInt(KAFKA_PORT))) {
+            LOGGER.warn("Kafka is not available, disabling Kafka consumer and producer");
+
+            this.kafkaConsumer = null;
+            this.kafkaProducer = null;
+            return false;
+        }
+
+        var kafkaSettings = new KafkaSettings()
+                .setAutoCommit(false)
+                .setBootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT);
+
+        this.kafkaConsumer = new FriendlyKafkaConsumer(kafkaSettings);
+        this.kafkaProducer = new FriendlyKafkaProducer(kafkaSettings);
+
         // TODO should we do a health check here?
         return true;
     }
 
     @Override
     public void onUnload() {
-        if (kafkaConsumer != null) kafkaConsumer.close();
-        if (kafkaProducer != null) kafkaProducer.shutdown();
+        if (this.kafkaConsumer != null) this.kafkaConsumer.close();
+        if (this.kafkaProducer != null) this.kafkaProducer.shutdown();
     }
 }

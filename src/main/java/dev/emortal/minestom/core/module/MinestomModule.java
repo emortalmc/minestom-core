@@ -15,8 +15,8 @@ public abstract class MinestomModule extends Module {
     protected MinestomModule(@NotNull ModuleEnvironment environment) {
         super(environment);
 
-        this.eventNode = EventNode.all(getClass().getAnnotation(ModuleData.class).name());
-        MinecraftServer.getGlobalEventHandler().addChild(eventNode);
+        this.eventNode = EventNode.all(this.getClass().getAnnotation(ModuleData.class).name());
+        MinecraftServer.getGlobalEventHandler().addChild(this.eventNode);
     }
 
     /**

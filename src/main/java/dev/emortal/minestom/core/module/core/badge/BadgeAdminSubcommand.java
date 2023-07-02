@@ -18,7 +18,6 @@ import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandContext;
 import net.minestom.server.command.builder.arguments.ArgumentLiteral;
-import net.minestom.server.command.builder.arguments.ArgumentWord;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,30 +34,31 @@ public final class BadgeAdminSubcommand extends Command {
         super("admin");
         this.badgeManager = badgeManager;
 
-        setCondition(ExtraConditions.hasPermission("command.badge.admin"));
+        this.setCondition(ExtraConditions.hasPermission("command.badge.admin"));
 
-        final ArgumentLiteral addArgument = new ArgumentLiteral("add");
-        final ArgumentLiteral removeArgument = new ArgumentLiteral("remove");
-        final var playerArgument = ArgumentMcPlayer.create("player",
+        var addArgument = new ArgumentLiteral("add");
+        var removeArgument = new ArgumentLiteral("remove");
+        var playerArgument = ArgumentMcPlayer.create("player",
                 GrpcStubCollection.getPlayerService().orElse(null),
                 McPlayerProto.SearchPlayersByUsernameRequest.FilterMethod.NONE
         );
-        final ArgumentWord badgeArgument = ArgumentBadge.create(badgeManager, "badge", false);
+        var badgeArgument = ArgumentBadge.create(badgeManager, "badge", false);
 
-        addSyntax(this::executeAddBadgeToPlayer, addArgument, playerArgument, badgeArgument);
-        addSyntax(this::executeRemoveBadgeFromPlayer, removeArgument, playerArgument, badgeArgument);
+        this.addSyntax(this::executeAddBadgeToPlayer, addArgument, playerArgument, badgeArgument);
+        this.addSyntax(this::executeRemoveBadgeFromPlayer, removeArgument, playerArgument, badgeArgument);
     }
 
     private void executeAddBadgeToPlayer(CommandSender sender, CommandContext context) {
-        final CompletableFuture<McPlayer> playerFuture = context.get("player");
-        final String badgeId = context.get("badge");
+        CompletableFuture<McPlayer> playerFuture = context.get("player");
+        String badgeId = context.get("badge");
 
         playerFuture.thenAccept(mcPlayer -> {
-            final var request = BadgeManagerProto.AddBadgeToPlayerRequest.newBuilder()
+            var request = BadgeManagerProto.AddBadgeToPlayerRequest.newBuilder()
                     .setBadgeId(badgeId)
-                    .setPlayerId(mcPlayer.getId()).build();
+                    .setPlayerId(mcPlayer.getId())
+                    .build();
 
-            Futures.addCallback(badgeManager.addBadgeToPlayer(request), new AddBadgeToPlayerCallback(sender), ForkJoinPool.commonPool());
+            Futures.addCallback(this.badgeManager.addBadgeToPlayer(request), new AddBadgeToPlayerCallback(sender), ForkJoinPool.commonPool());
         });
     }
 
@@ -66,12 +66,12 @@ public final class BadgeAdminSubcommand extends Command {
 
         @Override
         public void onSuccess(@NotNull BadgeManagerProto.AddBadgeToPlayerResponse result) {
-            sender.sendMessage(Component.text("Added badge to player"));
+            this.sender.sendMessage(Component.text("Added badge to player"));
         }
 
         @Override
         public void onFailure(@NotNull Throwable throwable) {
-            final Status status = StatusProto.fromThrowable(throwable);
+            Status status = StatusProto.fromThrowable(throwable);
             if (status == null || status.getDetailsCount() == 0) {
                 LOGGER.error("Failed to add badge to player", throwable);
                 return;
@@ -80,31 +80,31 @@ public final class BadgeAdminSubcommand extends Command {
             final BadgeManagerProto.AddBadgeToPlayerErrorResponse response;
             try {
                 response = status.getDetails(0).unpack(BadgeManagerProto.AddBadgeToPlayerErrorResponse.class);
-            } catch (final InvalidProtocolBufferException exception) {
+            } catch (InvalidProtocolBufferException exception) {
                 LOGGER.error("Failed to add badge to player", exception);
                 return;
             }
 
             switch (response.getReason()) {
-                case PLAYER_ALREADY_HAS_BADGE -> sender.sendMessage(Component.text("Player already has that badge"));
+                case PLAYER_ALREADY_HAS_BADGE -> this.sender.sendMessage(Component.text("Player already has that badge"));
                 default -> {
                     LOGGER.error("Failed to add badge to player", throwable);
-                    sender.sendMessage(Component.text("Failed to add badge to player"));
+                    this.sender.sendMessage(Component.text("Failed to add badge to player"));
                 }
             }
         }
     }
 
     private void executeRemoveBadgeFromPlayer(CommandSender sender, CommandContext context) {
-        final CompletableFuture<McPlayer> playerFuture = context.get("player");
-        final String badgeId = context.get("badge");
+        CompletableFuture<McPlayer> playerFuture = context.get("player");
+        String badgeId = context.get("badge");
 
         playerFuture.thenAccept(mcPlayer -> {
-            final var request = BadgeManagerProto.RemoveBadgeFromPlayerRequest.newBuilder()
+            var request = BadgeManagerProto.RemoveBadgeFromPlayerRequest.newBuilder()
                     .setBadgeId(badgeId)
                     .setPlayerId(mcPlayer.getId()).build();
 
-            Futures.addCallback(badgeManager.removeBadgeFromPlayer(request), new RemoveBadgeFromPlayerCallback(sender), ForkJoinPool.commonPool());
+            Futures.addCallback(this.badgeManager.removeBadgeFromPlayer(request), new RemoveBadgeFromPlayerCallback(sender), ForkJoinPool.commonPool());
         });
     }
 
@@ -112,7 +112,7 @@ public final class BadgeAdminSubcommand extends Command {
 
         @Override
         public void onSuccess(@NotNull BadgeManagerProto.RemoveBadgeFromPlayerResponse result) {
-            sender.sendMessage(Component.text("Removed badge from player"));
+            this.sender.sendMessage(Component.text("Removed badge from player"));
         }
 
         @Override
@@ -126,16 +126,16 @@ public final class BadgeAdminSubcommand extends Command {
             final BadgeManagerProto.RemoveBadgeFromPlayerErrorResponse response;
             try {
                 response = status.getDetails(0).unpack(BadgeManagerProto.RemoveBadgeFromPlayerErrorResponse.class);
-            } catch (final InvalidProtocolBufferException exception) {
+            } catch (InvalidProtocolBufferException exception) {
                 LOGGER.error("Failed to remove badge from player", exception);
                 return;
             }
 
             switch (response.getReason()) {
-                case PLAYER_DOESNT_HAVE_BADGE -> sender.sendMessage(Component.text("Player doesn't have that badge"));
+                case PLAYER_DOESNT_HAVE_BADGE -> this.sender.sendMessage(Component.text("Player doesn't have that badge"));
                 default -> {
                     LOGGER.error("Failed to remove badge from player", throwable);
-                    sender.sendMessage(Component.text("Failed to remove badge from player"));
+                    this.sender.sendMessage(Component.text("Failed to remove badge from player"));
                 }
             }
         }

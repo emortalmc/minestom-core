@@ -20,6 +20,7 @@ import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
 import dev.emortal.api.utils.callback.FunctionalFutureCallback;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import io.grpc.protobuf.StatusProto;
+import java.util.function.BiConsumer;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.MinecraftServer;
@@ -28,7 +29,6 @@ import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerLoginEvent;
-import net.minestom.server.network.ConnectionManager;
 import org.apache.commons.lang3.function.TriFunction;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -61,219 +61,183 @@ public final class MatchmakingSessionManager {
         this.sessionCreator = sessionCreator;
 
         // Get game modes
-        gameModeCollection.getAllConfigs(this::handleConfigUpdate).forEach(config -> configs.put(config.getId(), config));
-
-        final ConnectionManager connectionManager = MinecraftServer.getConnectionManager();
+        gameModeCollection.getAllConfigs(this::handleConfigUpdate).forEach(config -> this.configs.put(config.getId(), config));
 
         eventNode.addListener(PlayerLoginEvent.class, this::handlePlayerLogin);
 
         eventNode.addListener(PlayerDisconnectEvent.class, event -> {
-            final UUID playerId = event.getPlayer().getUuid();
-            final MatchmakingSession session = sessions.remove(playerId);
+            UUID playerId = event.getPlayer().getUuid();
+            MatchmakingSession session = this.sessions.remove(playerId);
             if (session == null) return;
 
             destroySession(session);
         });
 
-        messaging.addListener(TicketCreatedMessage.class, message -> {
-            final Ticket ticket = message.getTicket();
+        messaging.addListener(TicketCreatedMessage.class, message -> this.onTicketCreate(message.getTicket()));
 
-            boolean shouldCache = false;
-
-            for (final String playerId : ticket.getPlayerIdsList()) {
-                final UUID uuid = UUID.fromString(playerId);
-                final Player player = connectionManager.getPlayer(uuid);
-                if (player == null) continue;
-
-                final GameModeConfig gameMode = configs.get(ticket.getGameModeId());
-                final MatchmakingSession session = sessionCreator.apply(player, gameMode, ticket);
-                sessions.put(uuid, session);
-                shouldCache = true;
-            }
-
-            if (shouldCache) {
-                ticketCache.put(ticket.getId(), ticket);
-            }
-        });
-
-        messaging.addListener(TicketDeletedMessage.class, message -> {
-            final Ticket ticket = message.getTicket();
-
-            final Ticket removedTicket = ticketCache.remove(ticket.getId());
-            if (removedTicket == null) return; // If the ticket is not cached, there should be no sessions with it.
-
-            for (final String playerId : ticket.getPlayerIdsList()) {
-                final UUID uuid = UUID.fromString(playerId);
-                final Player player = connectionManager.getPlayer(uuid);
-                if (player == null) continue;
-
-                final MatchmakingSession session = sessions.remove(uuid);
-                if (session == null) continue;
-
-                final MatchmakingSession.DeleteReason deleteReason = switch (message.getReason()) {
-                    case MATCH_CREATED -> MatchmakingSession.DeleteReason.MATCH_CREATED;
-                    case MANUAL_DEQUEUE -> MatchmakingSession.DeleteReason.MANUAL_DEQUEUE;
-                    case GAME_MODE_DELETED -> MatchmakingSession.DeleteReason.GAME_MODE_DELETED;
-                    default -> MatchmakingSession.DeleteReason.UNKNOWN;
-                };
-
-                session.notifyDeletion(deleteReason);
-                destroySession(session);
-            }
-        });
+        messaging.addListener(TicketDeletedMessage.class, message -> this.onTicketDelete(message.getTicket(), message.getReason()));
 
         // NOTE: This logic requires on this method being run synchronously.
         // NOTE 2: This logic is only for players leaving/joining a ticket. It doesn't need anything else.
-        messaging.addListener(TicketUpdatedMessage.class, message -> {
-            final Ticket newTicket = message.getNewTicket();
-            final Ticket oldTicket = ticketCache.get(newTicket.getId());
+        messaging.addListener(TicketUpdatedMessage.class, message -> this.onTicketUpdated(message.getNewTicket()));
 
-            final GameModeConfig gameMode = configs.get(newTicket.getGameModeId());
+        messaging.addListener(PendingMatchCreatedMessage.class,
+                message -> this.onPendingMatchChange(message.getPendingMatch(), MatchmakingSession::onPendingMatchCreate));
 
-            // Perform adding operations and update existing MatchmakingSessions
-            for (final String playerId : newTicket.getPlayerIdsList()) {
-                MatchmakingSession session = sessions.get(UUID.fromString(playerId));
-                if (session != null) {
-                    session.setTicket(newTicket);
-                    continue;
-                }
-
-                final UUID uuid = UUID.fromString(playerId);
-                final Player player = connectionManager.getPlayer(uuid);
-                if (player == null) continue;
-
-                session = sessionCreator.apply(player, gameMode, newTicket);
-                sessions.put(uuid, session);
-            }
-
-            // Calculate removed if oldTicket is not null
-            if (oldTicket != null) {
-                for (final String playerId : oldTicket.getPlayerIdsList()) {
-                    if (newTicket.getPlayerIdsList().contains(playerId)) continue;
-
-                    final UUID uuid = UUID.fromString(playerId);
-                    final Player player = connectionManager.getPlayer(uuid);
-                    if (player == null) continue;
-
-                    final MatchmakingSession session = sessions.remove(uuid);
-                    if (session == null) continue;
-
-                    session.notifyDeletion(MatchmakingSession.DeleteReason.UNKNOWN);
-                    destroySession(session);
-                }
-            }
-
-            ticketCache.put(newTicket.getId(), newTicket);
-        });
-
-        messaging.addListener(PendingMatchCreatedMessage.class, message -> {
-            final PendingMatch pendingMatch = message.getPendingMatch();
-            for (final String ticketId : pendingMatch.getTicketIdsList()) {
-                final Ticket ticket = ticketCache.get(ticketId);
-                if (ticket == null) continue;
-
-                for (final String playerId : ticket.getPlayerIdsList()) {
-                    final UUID uuid = UUID.fromString(playerId);
-
-                    final MatchmakingSession session = sessions.get(uuid);
-                    if (session == null) continue;
-
-                    session.onPendingMatchCreate(pendingMatch);
-                }
-            }
-        });
-
-        messaging.addListener(PendingMatchUpdatedMessage.class, message -> {
-            final PendingMatch pendingMatch = message.getPendingMatch();
-            for (final String ticketId : pendingMatch.getTicketIdsList()) {
-                final Ticket ticket = ticketCache.get(ticketId);
-                if (ticket == null) continue;
-
-                for (final String playerId : ticket.getPlayerIdsList()) {
-                    final UUID uuid = UUID.fromString(playerId);
-
-                    final MatchmakingSession session = sessions.get(uuid);
-                    if (session == null) continue;
-
-                    session.onPendingMatchUpdate(pendingMatch);
-                }
-            }
-        });
+        messaging.addListener(PendingMatchUpdatedMessage.class,
+                message -> this.onPendingMatchChange(message.getPendingMatch(), MatchmakingSession::onPendingMatchUpdate));
 
         messaging.addListener(PendingMatchDeletedMessage.class, message -> {
             // Ignore this message as it's handled by the MatchCreatedMessage (and the proxy will message them :D)
             if (message.getReason() == PendingMatchDeletedMessage.Reason.MATCH_CREATED) return;
 
-            final PendingMatch pendingMatch = message.getPendingMatch();
-            for (final String ticketId : pendingMatch.getTicketIdsList()) {
-                final Ticket ticket = ticketCache.get(ticketId);
-                if (ticket == null) continue;
-
-                for (final String playerId : ticket.getPlayerIdsList()) {
-                    final UUID uuid = UUID.fromString(playerId);
-
-                    final MatchmakingSession session = sessions.get(uuid);
-                    if (session == null) continue;
-
-                    session.onPendingMatchCancelled(pendingMatch);
-                }
-            }
+            this.onPendingMatchChange(message.getPendingMatch(), MatchmakingSession::onPendingMatchCancelled);
         });
 
         messaging.addListener(MatchCreatedMessage.class, message -> {
-            for (final Ticket ticket : message.getMatch().getTicketsList()) {
-                for (final String playerId : ticket.getPlayerIdsList()) {
-                    final UUID uuid = UUID.fromString(playerId);
-
-                    final MatchmakingSession session = sessions.get(uuid);
-                    if (session == null) continue;
-
-                    session.notifyDeletion(MatchmakingSession.DeleteReason.MATCH_CREATED);
-                    destroySession(session);
+            for (Ticket ticket : message.getMatch().getTicketsList()) {
+                for (String playerId : ticket.getPlayerIdsList()) {
+                    deleteSession(playerId, MatchmakingSession.DeleteReason.MATCH_CREATED, false);
                 }
             }
         });
     }
 
+    private void onTicketCreate(Ticket ticket) {
+        boolean shouldCache = false;
+        for (String playerId : ticket.getPlayerIdsList()) {
+            UUID uuid = UUID.fromString(playerId);
+            Player player = MinecraftServer.getConnectionManager().getPlayer(uuid);
+            if (player == null) continue;
+
+            GameModeConfig gameMode = this.configs.get(ticket.getGameModeId());
+            MatchmakingSession session = sessionCreator.apply(player, gameMode, ticket);
+            this.sessions.put(uuid, session);
+            shouldCache = true;
+        }
+
+        if (shouldCache) {
+            this.ticketCache.put(ticket.getId(), ticket);
+        }
+    }
+
+    private void onTicketDelete(Ticket ticket, TicketDeletedMessage.Reason messageReason) {
+        Ticket cachedTicket = this.ticketCache.remove(ticket.getId());
+        if (cachedTicket == null) return; // If the ticket is not cached, there should be no sessions with it.
+
+        var deleteReason = switch (messageReason) {
+            case MATCH_CREATED -> MatchmakingSession.DeleteReason.MATCH_CREATED;
+            case MANUAL_DEQUEUE -> MatchmakingSession.DeleteReason.MANUAL_DEQUEUE;
+            case GAME_MODE_DELETED -> MatchmakingSession.DeleteReason.GAME_MODE_DELETED;
+            default -> MatchmakingSession.DeleteReason.UNKNOWN;
+        };
+
+        for (String playerId : ticket.getPlayerIdsList()) {
+            deleteSession(playerId, deleteReason, true);
+        }
+    }
+
+    private void onTicketUpdated(Ticket newTicket) {
+        Ticket oldTicket = this.ticketCache.get(newTicket.getId());
+        GameModeConfig gameMode = this.configs.get(newTicket.getGameModeId());
+
+        // Perform adding operations and update existing MatchmakingSessions
+        for (String playerId : newTicket.getPlayerIdsList()) {
+            MatchmakingSession session = this.sessions.get(UUID.fromString(playerId));
+            if (session != null) {
+                session.setTicket(newTicket);
+                continue;
+            }
+
+            UUID uuid = UUID.fromString(playerId);
+            Player player = MinecraftServer.getConnectionManager().getPlayer(uuid);
+            if (player == null) continue;
+
+            session = sessionCreator.apply(player, gameMode, newTicket);
+            this.sessions.put(uuid, session);
+        }
+
+        // Calculate removed if oldTicket is not null
+        if (oldTicket != null) {
+            for (String playerId : oldTicket.getPlayerIdsList()) {
+                if (newTicket.getPlayerIdsList().contains(playerId)) continue;
+                deleteSession(playerId, MatchmakingSession.DeleteReason.UNKNOWN, true);
+            }
+        }
+
+        this.ticketCache.put(newTicket.getId(), newTicket);
+    }
+
+    private void onPendingMatchChange(PendingMatch match, BiConsumer<MatchmakingSession, PendingMatch> action) {
+        for (String ticketId : match.getTicketIdsList()) {
+            Ticket ticket = this.ticketCache.get(ticketId);
+            if (ticket == null) continue;
+
+            for (String playerId : ticket.getPlayerIdsList()) {
+                UUID uuid = UUID.fromString(playerId);
+
+                MatchmakingSession session = this.sessions.get(uuid);
+                if (session == null) continue;
+
+                action.accept(session, match);
+            }
+        }
+    }
+
+    private void deleteSession(String stringId, MatchmakingSession.DeleteReason reason, boolean playerMustBeOnline) {
+        UUID id = UUID.fromString(stringId);
+
+        if (playerMustBeOnline) {
+            Player player = MinecraftServer.getConnectionManager().getPlayer(id);
+            if (player == null) return;
+        }
+
+        MatchmakingSession session = this.sessions.remove(id);
+        if (session == null) return;
+
+        session.notifyDeletion(reason);
+        destroySession(session);
+    }
+
     private void destroySession(@NotNull MatchmakingSession session) {
-        sessions.remove(session.getPlayer().getUuid());
+        this.sessions.remove(session.getPlayer().getUuid());
         session.destroy();
     }
 
     private void handleConfigUpdate(@NotNull ConfigUpdate<GameModeConfig> update) {
-        final GameModeConfig config = update.getConfig();
+        GameModeConfig config = update.getConfig();
 
         switch (update.getType()) {
-            case CREATE, MODIFY -> configs.put(config.getId(), config);
-            case DELETE -> configs.remove(config.getId());
+            case CREATE, MODIFY -> this.configs.put(config.getId(), config);
+            case DELETE -> this.configs.remove(config.getId());
         }
     }
 
     private void handlePlayerLogin(@NotNull PlayerLoginEvent event) {
-        final Player player = event.getPlayer();
-        final UUID playerId = player.getUuid();
-        final var infoRequest = GetPlayerQueueInfoRequest.newBuilder().setPlayerId(playerId.toString()).build();
+        Player player = event.getPlayer();
+        UUID playerId = player.getUuid();
+        var infoRequest = GetPlayerQueueInfoRequest.newBuilder().setPlayerId(playerId.toString()).build();
 
-        Futures.addCallback(matchmaker.getPlayerQueueInfo(infoRequest), FunctionalFutureCallback.create(
+        Futures.addCallback(this.matchmaker.getPlayerQueueInfo(infoRequest), FunctionalFutureCallback.create(
                 response -> {
-                    final Ticket ticket = response.getTicket();
-                    final GameModeConfig mode = configs.get(ticket.getGameModeId());
+                    Ticket ticket = response.getTicket();
+                    GameModeConfig mode = this.configs.get(ticket.getGameModeId());
 
-                    final var modeName = Placeholder.unparsed("mode", mode == null ? ticket.getGameModeId() : mode.getFriendlyName());
+                    var modeName = Placeholder.unparsed("mode", mode == null ? ticket.getGameModeId() : mode.getFriendlyName());
                     if (mode == null) {
                         LOGGER.error("Failed to get game mode config for player " + playerId + " with game mode ID " + ticket.getGameModeId());
                         player.sendMessage(MiniMessage.miniMessage().deserialize(QUEUE_RESTORE_FAILED_MESSAGE, modeName));
                         return;
                     }
 
-                    final MatchmakingSession session = sessionCreator.apply(player, mode, ticket);
-                    sessions.put(playerId, session);
-                    ticketCache.put(ticket.getId(), ticket);
+                    MatchmakingSession session = this.sessionCreator.apply(player, mode, ticket);
+                    this.sessions.put(playerId, session);
+                    this.ticketCache.put(ticket.getId(), ticket);
 
                     player.sendMessage(MiniMessage.miniMessage().deserialize(QUEUE_RESTORED_MESSAGE, modeName));
                 },
                 throwable -> {
-                    final Status status = StatusProto.fromThrowable(throwable);
+                    Status status = StatusProto.fromThrowable(throwable);
                     if (status.getCode() == Code.NOT_FOUND_VALUE) return; // Player is not in a queue
 
                     LOGGER.error("Failed to get player queue info for player " + playerId, throwable);
