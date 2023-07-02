@@ -41,8 +41,17 @@ public final class MinestomServer {
         return new Builder();
     }
 
+    private final String address;
+    private final int port;
+
+    private final MinecraftServer server;
+    private final ModuleManager moduleManager;
+
     private MinestomServer(Builder builder) {
-        var server = MinecraftServer.init();
+        this.address = builder.address;
+        this.port = builder.port;
+
+        this.server = MinecraftServer.init();
         MinecraftServer.setCompressionThreshold(0);
         this.tryEnableVelocity();
 
@@ -58,11 +67,8 @@ public final class MinestomServer {
             modules.add(new LoadableModule(entry.getKey(), entry.getValue()));
         }
 
-        var moduleManager = new ModuleManager(modules);
-        MinecraftServer.getSchedulerManager().buildShutdownTask(moduleManager::onUnload);
-
-        server.start(builder.address, builder.port);
-        moduleManager.onReady();
+        this.moduleManager = new ModuleManager(modules);
+        MinecraftServer.getSchedulerManager().buildShutdownTask(this.moduleManager::onUnload);
     }
 
     private void tryEnableVelocity() {
@@ -74,6 +80,15 @@ public final class MinestomServer {
 
         LOGGER.info("Enabling Velocity forwarding");
         VelocityProxy.enable(forwardingSecret);
+    }
+
+    public void start() {
+        this.server.start(this.address, this.port);
+        this.moduleManager.onReady();
+    }
+
+    public @NotNull ModuleManager getModuleManager() {
+        return this.moduleManager;
     }
 
     public static final class Builder {
@@ -126,6 +141,10 @@ public final class MinestomServer {
 
         public MinestomServer build() {
             return new MinestomServer(this);
+        }
+
+        public void buildAndStart() {
+            this.build().start();
         }
 
         private static String getValue(String key, String defaultValue) {
