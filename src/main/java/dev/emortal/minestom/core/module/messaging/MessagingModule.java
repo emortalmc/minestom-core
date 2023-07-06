@@ -45,9 +45,8 @@ public final class MessagingModule extends Module {
             return;
         }
 
-        final KafkaSettings kafkaSettings = new KafkaSettings()
-                .setAutoCommit(false)
-                .setBootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT);
+        final KafkaSettings kafkaSettings = KafkaSettings.builder()
+                .bootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT).build();
 
         this.kafkaConsumer = new FriendlyKafkaConsumer(kafkaSettings);
         this.kafkaProducer = new FriendlyKafkaProducer(kafkaSettings);
@@ -57,7 +56,7 @@ public final class MessagingModule extends Module {
         final MessageProtoConfig<T> parser = ProtoParserRegistry.getParser(messageType);
         if (parser == null) throw new IllegalArgumentException("No parser found for message type " + messageType.getName());
 
-        if (kafkaConsumer != null) kafkaConsumer.addListener(messageType, listener);
+        if (this.kafkaConsumer != null) this.kafkaConsumer.addListener(messageType, listener);
     }
 
     public @Nullable FriendlyKafkaProducer getKafkaProducer() {
@@ -72,7 +71,7 @@ public final class MessagingModule extends Module {
 
     @Override
     public void onUnload() {
-        if (kafkaConsumer != null) kafkaConsumer.close();
-        if (kafkaProducer != null) kafkaProducer.shutdown();
+        if (this.kafkaConsumer != null) this.kafkaConsumer.close();
+        if (this.kafkaProducer != null) this.kafkaProducer.shutdown();
     }
 }
