@@ -12,6 +12,7 @@ import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeCollection;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
 import dev.emortal.minestom.core.module.matchmaker.CommonMatchmakerError;
 import io.grpc.protobuf.StatusProto;
+import java.util.Collection;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.command.CommandSender;
