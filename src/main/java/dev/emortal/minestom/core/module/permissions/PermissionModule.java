@@ -5,15 +5,12 @@ import dev.emortal.api.modules.ModuleEnvironment;
 import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.Environment;
 import dev.emortal.minestom.core.module.MinestomModule;
-import net.minestom.server.entity.Player;
+import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import net.minestom.server.event.player.PlayerLoginEvent;
-import net.minestom.server.network.player.PlayerConnection;
 import net.minestom.server.permission.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
 
 @ModuleData(name = "permissions", required = true)
 public final class PermissionModule extends MinestomModule {
@@ -34,7 +31,7 @@ public final class PermissionModule extends MinestomModule {
         if (!ENABLED) {
             if (GRANT_ALL_PERMISSIONS) {
                 LOGGER.warn("Permission service is not available, granting all permissions");
-                eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new Permission("*")));
+                this.eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new Permission("*")));
             } else {
                 LOGGER.warn("Permission service is not available, denying all permissions");
             }
@@ -42,7 +39,13 @@ public final class PermissionModule extends MinestomModule {
             return true;
         }
 
-        permissionCache = new PermissionCache(GrpcStubCollection.getPermissionService().orElse(null), eventNode);
+        this.permissionCache = new PermissionCache(GrpcStubCollection.getPermissionService().orElse(null), this.eventNode);
+
+        MessagingModule messagingModule = this.environment.moduleProvider().getModule(MessagingModule.class);
+        if (messagingModule != null) {
+            new PermissionUpdateListener(this.permissionCache, messagingModule);
+        }
+
         return true;
     }
 
