@@ -8,7 +8,6 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-    mavenLocal()
 
     maven("https://repo.emortal.dev/snapshots")
     maven("https://repo.emortal.dev/releases")
@@ -30,7 +29,7 @@ dependencies {
     api("dev.emortal.api:module-system:6331134")
     api("dev.emortal.api:agones-sdk:1.0.7")
     api("dev.emortal.api:common-proto-sdk:da7a48c")
-    api("dev.emortal.api:live-config-parser:local")
+    api("dev.emortal.api:live-config-parser:2a395c2")
     api("dev.emortal.api:kurushimi-sdk:c5fdffc")
 
     api("io.kubernetes:client-java:18.0.0")
