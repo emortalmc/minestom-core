@@ -94,6 +94,8 @@ public class PermissionCache {
         this.userCache.put(user.id(), user);
         player.getAllPermissions().clear();
         player.getAllPermissions().addAll(permissions);
+
+        player.refreshCommands();
     }
 
     private @NotNull Set<Permission> calculatePerms(@NotNull Set<String> roleIds) {
@@ -108,14 +110,6 @@ public class PermissionCache {
             permissions.addAll(role.permissions());
         }
         return permissions;
-    }
-
-    public Map<String, CachedRole> getRoleCache() {
-        return this.roleCache;
-    }
-
-    public Map<UUID, User> getUserCache() {
-        return this.userCache;
     }
 
     public Optional<CachedRole> getRole(String id) {
@@ -180,6 +174,16 @@ public class PermissionCache {
 
         user.roleIds().remove(roleId);
         this.updateUserPermissions(user);
+    }
+
+    private void refreshCommands(@NotNull UUID playerId) {
+        Player player = MinecraftServer.getConnectionManager().getPlayer(playerId);
+        if (player == null) {
+            LOGGER.error("Couldn't find player with id {}", playerId);
+            return;
+        }
+
+        player.refreshCommands();
     }
 
     private void onDisconnect(@NotNull PlayerDisconnectEvent event) {
