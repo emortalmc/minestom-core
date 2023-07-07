@@ -49,11 +49,11 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
 
     @Override
     public void onPendingMatchCreate(@NotNull PendingMatch match) {
-        final Instant teleportTime = ProtoTimestampConverter.fromProto(match.getTeleportTime());
-        final int secondsToTeleport = (int) (teleportTime.getEpochSecond() - Instant.now().getEpochSecond());
+        Instant teleportTime = ProtoTimestampConverter.fromProto(match.getTeleportTime());
+        int secondsToTeleport = (int) (teleportTime.getEpochSecond() - Instant.now().getEpochSecond());
 
-        final var modeName = Placeholder.unparsed("mode", gameMode.getFriendlyName());
-        final var time = Placeholder.unparsed("time", String.valueOf(secondsToTeleport));
+        var modeName = Placeholder.unparsed("mode", this.gameMode.friendlyName());
+        var time = Placeholder.unparsed("time", String.valueOf(secondsToTeleport));
         player.sendMessage(MINI_MESSAGE.deserialize(MATCH_FOUND_MESSAGE, modeName, time));
     }
 
@@ -64,19 +64,19 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
 
     @Override
     public void onPendingMatchCancelled(@NotNull PendingMatch match) {
-        final var modeName = Placeholder.unparsed("mode", gameMode.getFriendlyName());
-        player.sendMessage(MINI_MESSAGE.deserialize(MATCH_CANCELLED_MESSAGE, modeName));
+        var modeName = Placeholder.unparsed("mode", this.gameMode.friendlyName());
+        this.player.sendMessage(MINI_MESSAGE.deserialize(MATCH_CANCELLED_MESSAGE, modeName));
     }
 
     private void notifyPlayer() {
-        player.sendMessage(Component.text("You are in queue for %s...".formatted(gameMode.getFriendlyName()), NamedTextColor.GREEN));
+        this.player.sendMessage(Component.text("You are in queue for %s...".formatted(this.gameMode.friendlyName()), NamedTextColor.GREEN));
     }
 
     @Override
     public void notifyDeletion(@NotNull DeleteReason reason) {
         switch (reason) {
-            case MANUAL_DEQUEUE -> player.sendMessage(Component.text("You have been removed from the queue.", NamedTextColor.RED));
-            case GAME_MODE_DELETED -> player.sendMessage(Component.text("The game mode you were in queue for has been disabled.", NamedTextColor.RED));
+            case MANUAL_DEQUEUE -> this.player.sendMessage(Component.text("You have been removed from the queue.", NamedTextColor.RED));
+            case GAME_MODE_DELETED -> this.player.sendMessage(Component.text("The game mode you were in queue for has been disabled.", NamedTextColor.RED));
             case MATCH_CREATED, UNKNOWN -> {
             } // do nothing
         }
@@ -84,6 +84,6 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
 
     @Override
     public void destroy() {
-        notificationTask.cancel(false);
+        this.notificationTask.cancel(false);
     }
 }

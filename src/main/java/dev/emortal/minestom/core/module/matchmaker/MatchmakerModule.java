@@ -17,14 +17,11 @@ import dev.emortal.minestom.core.module.matchmaker.session.MatchmakingSession;
 import dev.emortal.minestom.core.module.matchmaker.session.MatchmakingSessionManager;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.command.CommandManager;
 import net.minestom.server.entity.Player;
 import org.apache.commons.lang3.function.TriFunction;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Optional;
 
 @ModuleData(name = "matchmaker", required = false, softDependencies = {MessagingModule.class, LiveConfigModule.class})
 public final class MatchmakerModule extends MinestomModule {
@@ -46,34 +43,33 @@ public final class MatchmakerModule extends MinestomModule {
         this.sessionCreator = sessionCreator;
 
         KurushimiUtils.registerParserRegistry();
-        this.messaging = getModule(MessagingModule.class);
-        this.liveConfig = getModule(LiveConfigModule.class);
+        this.messaging = this.getModule(MessagingModule.class);
+        this.liveConfig = this.getModule(LiveConfigModule.class);
     }
 
     @Override
     public boolean onLoad() {
-        if (matchmaker == null) {
+        if (this.matchmaker == null) {
             LOGGER.error("Matchmaker gRPC stub is not present but is required for MatchmakerModule");
             return false;
         }
 
-        final Optional<GameModeCollection> gameModeCollection = liveConfig.getConfigCollection().gameModes();
-        if (gameModeCollection.isEmpty()) {
+        GameModeCollection gameModes = this.liveConfig.getConfigCollection().gameModes();
+        if (gameModes == null) {
             LOGGER.error("GameModeCollection is not present in LiveConfigModule but is required for MatchmakerModule");
             return false;
         }
 
-        final CommandManager commandManager = MinecraftServer.getCommandManager();
-        commandManager.register(new QueueCommand(matchmaker, gameModeCollection.get()));
-        commandManager.register(new DequeueCommand(matchmaker));
+        var commandManager = MinecraftServer.getCommandManager();
+        commandManager.register(new QueueCommand(this.matchmaker, gameModes));
+        commandManager.register(new DequeueCommand(this.matchmaker));
 
-        new MatchmakingSessionManager(eventNode, matchmaker, messaging, gameModeCollection.get(), sessionCreator);
+        new MatchmakingSessionManager(this.eventNode, this.matchmaker, this.messaging, gameModes, this.sessionCreator);
 
         return true;
     }
 
     @Override
     public void onUnload() {
-
     }
 }

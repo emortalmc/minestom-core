@@ -34,28 +34,19 @@ dependencies {
     api("dev.emortal.api:agones-sdk:1.0.7")
     api("dev.emortal.api:common-proto-sdk:da7a48c")
     api("dev.emortal.api:live-config-parser:2a395c2")
-    api("dev.emortal.api:kurushimi-sdk:7c90f25")
+    api("dev.emortal.api:kurushimi-sdk:c5fdffc")
 
     api("io.kubernetes:client-java:18.0.0")
 
-    api("io.micrometer:micrometer-registry-prometheus:1.10.5")
+    api("io.micrometer:micrometer-registry-prometheus:1.11.1")
 
-    // Used for the packaged topological sorting
-    implementation("org.jgrapht:jgrapht-core:1.5.1")
-
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.3")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.3")
 }
 
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
-
-tasks {
-    test {
-        useJUnitPlatform()
     }
 }
 
