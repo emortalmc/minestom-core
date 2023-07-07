@@ -51,7 +51,7 @@ public final class MatchmakingSessionManager {
     private final Map<UUID, MatchmakingSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, Ticket> ticketCache = new ConcurrentHashMap<>();
 
-    private final Map<String, GameModeConfig> configs = new ConcurrentHashMap<>();
+    private final GameModeCollection gameModeCollection;
 
     // TODO: note that tickets technically memory leak but it's so small and cleaned up when the ticket is deleted.
     public MatchmakingSessionManager(@NotNull EventNode<Event> eventNode, @NotNull MatchmakerGrpc.MatchmakerFutureStub matchmaker,
@@ -59,9 +59,7 @@ public final class MatchmakingSessionManager {
                                      @NotNull TriFunction<Player, GameModeConfig, Ticket, MatchmakingSession> sessionCreator) {
         this.matchmaker = matchmaker;
         this.sessionCreator = sessionCreator;
-
-        // Get game modes
-        gameModeCollection.getAllConfigs(this::handleConfigUpdate).forEach(config -> this.configs.put(config.getId(), config));
+        this.gameModeCollection = gameModeCollection;
 
         eventNode.addListener(PlayerLoginEvent.class, this::handlePlayerLogin);
 
@@ -110,7 +108,7 @@ public final class MatchmakingSessionManager {
             Player player = MinecraftServer.getConnectionManager().getPlayer(uuid);
             if (player == null) continue;
 
-            GameModeConfig gameMode = this.configs.get(ticket.getGameModeId());
+            GameModeConfig gameMode = this.gameModeCollection.getConfig(ticket.getGameModeId());
             MatchmakingSession session = sessionCreator.apply(player, gameMode, ticket);
             this.sessions.put(uuid, session);
             shouldCache = true;
@@ -139,7 +137,7 @@ public final class MatchmakingSessionManager {
 
     private void onTicketUpdated(Ticket newTicket) {
         Ticket oldTicket = this.ticketCache.get(newTicket.getId());
-        GameModeConfig gameMode = this.configs.get(newTicket.getGameModeId());
+        GameModeConfig gameMode = this.gameModeCollection.getConfig(newTicket.getGameModeId());
 
         // Perform adding operations and update existing MatchmakingSessions
         for (String playerId : newTicket.getPlayerIdsList()) {
@@ -204,15 +202,6 @@ public final class MatchmakingSessionManager {
         session.destroy();
     }
 
-    private void handleConfigUpdate(@NotNull ConfigUpdate<GameModeConfig> update) {
-        GameModeConfig config = update.getConfig();
-
-        switch (update.getType()) {
-            case CREATE, MODIFY -> this.configs.put(config.getId(), config);
-            case DELETE -> this.configs.remove(config.getId());
-        }
-    }
-
     private void handlePlayerLogin(@NotNull PlayerLoginEvent event) {
         Player player = event.getPlayer();
         UUID playerId = player.getUuid();
@@ -221,9 +210,9 @@ public final class MatchmakingSessionManager {
         Futures.addCallback(this.matchmaker.getPlayerQueueInfo(infoRequest), FunctionalFutureCallback.create(
                 response -> {
                     Ticket ticket = response.getTicket();
-                    GameModeConfig mode = this.configs.get(ticket.getGameModeId());
+                    GameModeConfig mode = this.gameModeCollection.getConfig(ticket.getGameModeId());
 
-                    var modeName = Placeholder.unparsed("mode", mode == null ? ticket.getGameModeId() : mode.getFriendlyName());
+                    var modeName = Placeholder.unparsed("mode", mode == null ? ticket.getGameModeId() : mode.friendlyName());
                     if (mode == null) {
                         LOGGER.error("Failed to get game mode config for player " + playerId + " with game mode ID " + ticket.getGameModeId());
                         player.sendMessage(MiniMessage.miniMessage().deserialize(QUEUE_RESTORE_FAILED_MESSAGE, modeName));

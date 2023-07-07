@@ -61,14 +61,11 @@ public final class MessagingModule extends Module {
             return false;
         }
 
-        var kafkaSettings = new KafkaSettings()
-                .setAutoCommit(false)
-                .setBootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT);
+        var kafkaSettings = KafkaSettings.builder().bootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT).build();
 
         this.kafkaConsumer = new FriendlyKafkaConsumer(kafkaSettings);
         this.kafkaProducer = new FriendlyKafkaProducer(kafkaSettings);
 
-        // TODO should we do a health check here?
         return true;
     }
 

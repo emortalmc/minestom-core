@@ -102,7 +102,8 @@ public final class BadgeAdminSubcommand extends Command {
         playerFuture.thenAccept(mcPlayer -> {
             var request = BadgeManagerProto.RemoveBadgeFromPlayerRequest.newBuilder()
                     .setBadgeId(badgeId)
-                    .setPlayerId(mcPlayer.getId()).build();
+                    .setPlayerId(mcPlayer.getId())
+                    .build();
 
             Futures.addCallback(this.badgeManager.removeBadgeFromPlayer(request), new RemoveBadgeFromPlayerCallback(sender), ForkJoinPool.commonPool());
         });

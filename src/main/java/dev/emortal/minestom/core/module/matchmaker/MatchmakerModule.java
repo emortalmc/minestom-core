@@ -57,7 +57,7 @@ public final class MatchmakerModule extends MinestomModule {
             return false;
         }
 
-        GameModeCollection gameModes = this.liveConfig.getConfigCollection().gameModes().orElse(null);
+        GameModeCollection gameModes = this.liveConfig.getConfigCollection().gameModes();
         if (gameModes == null) {
             LOGGER.error("GameModeCollection is not present in LiveConfigModule but is required for MatchmakerModule");
             return false;

@@ -52,7 +52,7 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
         Instant teleportTime = ProtoTimestampConverter.fromProto(match.getTeleportTime());
         int secondsToTeleport = (int) (teleportTime.getEpochSecond() - Instant.now().getEpochSecond());
 
-        var modeName = Placeholder.unparsed("mode", this.gameMode.getFriendlyName());
+        var modeName = Placeholder.unparsed("mode", this.gameMode.friendlyName());
         var time = Placeholder.unparsed("time", String.valueOf(secondsToTeleport));
         player.sendMessage(MINI_MESSAGE.deserialize(MATCH_FOUND_MESSAGE, modeName, time));
     }
@@ -64,12 +64,12 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
 
     @Override
     public void onPendingMatchCancelled(@NotNull PendingMatch match) {
-        var modeName = Placeholder.unparsed("mode", this.gameMode.getFriendlyName());
+        var modeName = Placeholder.unparsed("mode", this.gameMode.friendlyName());
         this.player.sendMessage(MINI_MESSAGE.deserialize(MATCH_CANCELLED_MESSAGE, modeName));
     }
 
     private void notifyPlayer() {
-        this.player.sendMessage(Component.text("You are in queue for %s...".formatted(this.gameMode.getFriendlyName()), NamedTextColor.GREEN));
+        this.player.sendMessage(Component.text("You are in queue for %s...".formatted(this.gameMode.friendlyName()), NamedTextColor.GREEN));
     }
 
     @Override
