@@ -33,7 +33,7 @@ dependencies {
     api("dev.emortal.api:module-system:0352626")
     api("dev.emortal.api:agones-sdk:1.0.7")
     api("dev.emortal.api:common-proto-sdk:da7a48c")
-    api("dev.emortal.api:live-config-parser:6d27d33")
+    api("dev.emortal.api:live-config-parser:e0c22ca")
     api("dev.emortal.api:kurushimi-sdk:c5fdffc")
 
     api("io.kubernetes:client-java:18.0.0")
