@@ -1,7 +1,8 @@
 package dev.emortal.minestom.core.module.permissions;
 
 import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.env.ModuleEnvironment;
+import dev.emortal.api.service.permission.PermissionService;
 import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.Environment;
 import dev.emortal.minestom.core.module.MinestomModule;
@@ -17,7 +18,6 @@ import org.slf4j.LoggerFactory;
 public final class PermissionModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionModule.class);
 
-    private static final boolean ENABLED = Environment.isProduction() || GrpcStubCollection.getPermissionService().isPresent();
     // Grants all permissions if the permission service is not available
     private static final boolean GRANT_ALL_PERMISSIONS = Boolean.parseBoolean(System.getenv("GRANT_ALL_PERMISSIONS"));
 
@@ -29,7 +29,8 @@ public final class PermissionModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        if (!ENABLED) {
+        PermissionService permissionService = GrpcStubCollection.getPermissionService().orElse(null);
+        if (!Environment.isProduction() || permissionService == null) {
             if (GRANT_ALL_PERMISSIONS) {
                 LOGGER.warn("Permission service is not available, granting all permissions");
                 this.eventNode.addListener(PlayerLoginEvent.class, event -> event.getPlayer().addPermission(new Permission("*")));
@@ -40,7 +41,7 @@ public final class PermissionModule extends MinestomModule {
             return true;
         }
 
-        this.permissionCache = new PermissionCache(GrpcStubCollection.getPermissionService().orElse(null), this.eventNode);
+        this.permissionCache = new PermissionCache(permissionService, this.eventNode);
 
         MessagingModule messagingModule = this.environment.moduleProvider().getModule(MessagingModule.class);
         if (messagingModule != null) {

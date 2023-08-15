@@ -1,7 +1,7 @@
 package dev.emortal.minestom.core.module.matchmaker.session;
 
-import dev.emortal.api.kurushimi.PendingMatch;
-import dev.emortal.api.kurushimi.Ticket;
+import dev.emortal.api.model.matchmaker.PendingMatch;
+import dev.emortal.api.model.matchmaker.Ticket;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
 import dev.emortal.api.utils.ProtoTimestampConverter;
 import net.kyori.adventure.text.Component;

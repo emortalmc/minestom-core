@@ -1,9 +1,8 @@
 package dev.emortal.minestom.core.module.monitoring;
 
 import com.sun.net.httpserver.HttpServer;
-import dev.emortal.api.modules.Module;
 import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.env.ModuleEnvironment;
 import dev.emortal.minestom.core.Environment;
 import dev.emortal.minestom.core.module.MinestomModule;
 import io.micrometer.core.instrument.Metrics;

@@ -1,7 +1,6 @@
 package dev.emortal.minestom.core.module.kubernetes.command.agones;
 
 import dev.agones.sdk.SDKGrpc;
-import dev.emortal.minestom.core.utils.command.ExtraConditions;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentLiteral;
@@ -13,7 +12,7 @@ public final class AgonesCommand extends Command {
 
     public AgonesCommand(@NotNull SDKGrpc.SDKStub sdk) {
         super("magones");
-        this.setCondition(ExtraConditions.hasPermission("command.agones"));
+        this.setCondition((source, $) -> source.hasPermission("command.agones"));
 
         var sdkSubs = new SdkSubCommands(sdk);
 

@@ -2,7 +2,7 @@ package dev.emortal.minestom.core.module;
 
 import dev.emortal.api.modules.Module;
 import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.env.ModuleEnvironment;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;

@@ -26,11 +26,10 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.8")
 
     // APIs
-    api("dev.emortal.api:module-system:16353c8")
+    api("dev.emortal.api:module-system:e69aa43")
     api("dev.emortal.api:agones-sdk:1.0.7")
-    api("dev.emortal.api:common-proto-sdk:da7a48c")
-    api("dev.emortal.api:live-config-parser:a9fc46f")
-    api("dev.emortal.api:kurushimi-sdk:82c14c3")
+    api("dev.emortal.api:common-proto-sdk:4135280")
+    api("dev.emortal.api:live-config-parser:89c56a9")
 
     api("io.kubernetes:client-java:18.0.0")
 

@@ -3,7 +3,7 @@ package dev.emortal.minestom.core.module.messaging;
 import com.google.protobuf.AbstractMessage;
 import dev.emortal.api.modules.Module;
 import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.env.ModuleEnvironment;
 import dev.emortal.api.utils.kafka.FriendlyKafkaConsumer;
 import dev.emortal.api.utils.kafka.FriendlyKafkaProducer;
 import dev.emortal.api.utils.kafka.KafkaSettings;

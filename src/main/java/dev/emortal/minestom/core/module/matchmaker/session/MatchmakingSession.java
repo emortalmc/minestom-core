@@ -1,7 +1,8 @@
 package dev.emortal.minestom.core.module.matchmaker.session;
 
-import dev.emortal.api.kurushimi.PendingMatch;
-import dev.emortal.api.kurushimi.Ticket;
+import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
+import dev.emortal.api.model.matchmaker.PendingMatch;
+import dev.emortal.api.model.matchmaker.Ticket;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -48,5 +49,11 @@ public abstract class MatchmakingSession {
 
     public void setTicket(@NotNull Ticket ticket) {
         this.ticket = ticket;
+    }
+
+    @FunctionalInterface
+    public interface Creator {
+
+        @NotNull MatchmakingSession create(@NotNull Player player, @NotNull GameModeConfig gameModeConfig, @NotNull Ticket ticket);
     }
 }
