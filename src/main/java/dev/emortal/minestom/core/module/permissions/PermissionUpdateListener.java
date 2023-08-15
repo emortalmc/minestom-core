@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
-public class PermissionUpdateListener {
+public final class PermissionUpdateListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionUpdateListener.class);
 
     private final PermissionCache permissionCache;

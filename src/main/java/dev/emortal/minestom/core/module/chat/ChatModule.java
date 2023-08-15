@@ -4,7 +4,7 @@ import dev.emortal.api.message.common.PlayerChatMessageMessage;
 import dev.emortal.api.message.messagehandler.ChatMessageCreatedMessage;
 import dev.emortal.api.model.messagehandler.ChatMessage;
 import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.env.ModuleEnvironment;
 import dev.emortal.api.utils.kafka.FriendlyKafkaProducer;
 import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;

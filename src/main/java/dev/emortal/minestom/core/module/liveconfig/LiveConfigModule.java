@@ -3,7 +3,7 @@ package dev.emortal.minestom.core.module.liveconfig;
 import dev.emortal.api.liveconfigparser.configs.LiveConfigCollection;
 import dev.emortal.api.modules.Module;
 import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.env.ModuleEnvironment;
 import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
 import io.kubernetes.client.openapi.ApiClient;
 import org.jetbrains.annotations.NotNull;

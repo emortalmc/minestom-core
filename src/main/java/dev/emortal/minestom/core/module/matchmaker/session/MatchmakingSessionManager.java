@@ -1,12 +1,6 @@
 package dev.emortal.minestom.core.module.matchmaker.session;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.rpc.Code;
-import com.google.rpc.Status;
-import dev.emortal.api.kurushimi.GetPlayerQueueInfoRequest;
-import dev.emortal.api.kurushimi.MatchmakerGrpc;
-import dev.emortal.api.kurushimi.PendingMatch;
-import dev.emortal.api.kurushimi.Ticket;
+import dev.emortal.api.grpc.matchmaker.MatchmakerProto;
 import dev.emortal.api.kurushimi.messages.MatchCreatedMessage;
 import dev.emortal.api.kurushimi.messages.PendingMatchCreatedMessage;
 import dev.emortal.api.kurushimi.messages.PendingMatchDeletedMessage;
@@ -16,9 +10,11 @@ import dev.emortal.api.kurushimi.messages.TicketDeletedMessage;
 import dev.emortal.api.kurushimi.messages.TicketUpdatedMessage;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeCollection;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
-import dev.emortal.api.utils.callback.FunctionalFutureCallback;
+import dev.emortal.api.model.matchmaker.PendingMatch;
+import dev.emortal.api.model.matchmaker.Ticket;
+import dev.emortal.api.service.matchmaker.MatchmakerService;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
-import io.grpc.protobuf.StatusProto;
+import io.grpc.StatusRuntimeException;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.MinecraftServer;
@@ -27,7 +23,6 @@ import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerLoginEvent;
-import org.apache.commons.lang3.function.TriFunction;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ForkJoinPool;
 import java.util.function.BiConsumer;
 
 public final class MatchmakingSessionManager {
@@ -44,8 +38,8 @@ public final class MatchmakingSessionManager {
     private static final String QUEUE_RESTORED_MESSAGE = "<green>Your queue for <mode> has been transferred!</green>";
     private static final String QUEUE_RESTORE_FAILED_MESSAGE = "<red>Your queue for <mode> could not be transferred! Please tell a staff member.</red>";
 
-    private final MatchmakerGrpc.MatchmakerFutureStub matchmaker;
-    private final TriFunction<Player, GameModeConfig, Ticket, MatchmakingSession> sessionCreator;
+    private final MatchmakerService matchmaker;
+    private final MatchmakingSession.Creator sessionCreator;
 
     private final Map<UUID, MatchmakingSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, Ticket> ticketCache = new ConcurrentHashMap<>();
@@ -53,21 +47,21 @@ public final class MatchmakingSessionManager {
     private final GameModeCollection gameModeCollection;
 
     // TODO: note that tickets technically memory leak but it's so small and cleaned up when the ticket is deleted.
-    public MatchmakingSessionManager(@NotNull EventNode<Event> eventNode, @NotNull MatchmakerGrpc.MatchmakerFutureStub matchmaker,
+    public MatchmakingSessionManager(@NotNull EventNode<Event> eventNode, @NotNull MatchmakerService matchmaker,
                                      @NotNull MessagingModule messaging, @NotNull GameModeCollection gameModeCollection,
-                                     @NotNull TriFunction<Player, GameModeConfig, Ticket, MatchmakingSession> sessionCreator) {
+                                     @NotNull MatchmakingSession.Creator sessionCreator) {
         this.matchmaker = matchmaker;
         this.sessionCreator = sessionCreator;
         this.gameModeCollection = gameModeCollection;
 
-        eventNode.addListener(PlayerLoginEvent.class, this::handlePlayerLogin);
+        eventNode.addListener(PlayerLoginEvent.class, event -> Thread.startVirtualThread(() -> this.handlePlayerLogin(event)));
 
         eventNode.addListener(PlayerDisconnectEvent.class, event -> {
             UUID playerId = event.getPlayer().getUuid();
             MatchmakingSession session = this.sessions.remove(playerId);
             if (session == null) return;
 
-            destroySession(session);
+            this.destroySession(session);
         });
 
         messaging.addListener(TicketCreatedMessage.class, message -> this.onTicketCreate(message.getTicket()));
@@ -108,7 +102,12 @@ public final class MatchmakingSessionManager {
             if (player == null) continue;
 
             GameModeConfig gameMode = this.gameModeCollection.getConfig(ticket.getGameModeId());
-            MatchmakingSession session = sessionCreator.apply(player, gameMode, ticket);
+            if (gameMode == null) {
+                LOGGER.warn("Received ticket for unknown game mode: {}", ticket.getGameModeId());
+                continue;
+            }
+
+            MatchmakingSession session = this.sessionCreator.create(player, gameMode, ticket);
             this.sessions.put(uuid, session);
             shouldCache = true;
         }
@@ -137,6 +136,10 @@ public final class MatchmakingSessionManager {
     private void onTicketUpdated(Ticket newTicket) {
         Ticket oldTicket = this.ticketCache.get(newTicket.getId());
         GameModeConfig gameMode = this.gameModeCollection.getConfig(newTicket.getGameModeId());
+        if (gameMode == null) {
+            LOGGER.warn("Received ticket for unknown game mode: {}", newTicket.getGameModeId());
+            return;
+        }
 
         // Perform adding operations and update existing MatchmakingSessions
         for (String playerId : newTicket.getPlayerIdsList()) {
@@ -150,7 +153,7 @@ public final class MatchmakingSessionManager {
             Player player = MinecraftServer.getConnectionManager().getPlayer(uuid);
             if (player == null) continue;
 
-            session = sessionCreator.apply(player, gameMode, newTicket);
+            session = sessionCreator.create(player, gameMode, newTicket);
             this.sessions.put(uuid, session);
         }
 
@@ -204,32 +207,30 @@ public final class MatchmakingSessionManager {
     private void handlePlayerLogin(@NotNull PlayerLoginEvent event) {
         Player player = event.getPlayer();
         UUID playerId = player.getUuid();
-        var infoRequest = GetPlayerQueueInfoRequest.newBuilder().setPlayerId(playerId.toString()).build();
 
-        Futures.addCallback(this.matchmaker.getPlayerQueueInfo(infoRequest), FunctionalFutureCallback.create(
-                response -> {
-                    Ticket ticket = response.getTicket();
-                    GameModeConfig mode = this.gameModeCollection.getConfig(ticket.getGameModeId());
+        MatchmakerProto.GetPlayerQueueInfoResponse queueInfo;
+        try {
+            queueInfo = this.matchmaker.getPlayerQueueInfo(playerId);
+        } catch (StatusRuntimeException exception) {
+            LOGGER.error("Failed to get queue info for player " + playerId, exception);
+            return;
+        }
+        if (queueInfo == null) return; // Not in a queue
 
-                    var modeName = Placeholder.unparsed("mode", mode == null ? ticket.getGameModeId() : mode.friendlyName());
-                    if (mode == null) {
-                        LOGGER.error("Failed to get game mode config for player " + playerId + " with game mode ID " + ticket.getGameModeId());
-                        player.sendMessage(MiniMessage.miniMessage().deserialize(QUEUE_RESTORE_FAILED_MESSAGE, modeName));
-                        return;
-                    }
+        Ticket ticket = queueInfo.getTicket();
+        GameModeConfig mode = this.gameModeCollection.getConfig(ticket.getGameModeId());
 
-                    MatchmakingSession session = this.sessionCreator.apply(player, mode, ticket);
-                    this.sessions.put(playerId, session);
-                    this.ticketCache.put(ticket.getId(), ticket);
+        var modeName = Placeholder.unparsed("mode", mode == null ? ticket.getGameModeId() : mode.friendlyName());
+        if (mode == null) {
+            LOGGER.error("Failed to get game mode config for player " + playerId + " with game mode ID " + ticket.getGameModeId());
+            player.sendMessage(MiniMessage.miniMessage().deserialize(QUEUE_RESTORE_FAILED_MESSAGE, modeName));
+            return;
+        }
 
-                    player.sendMessage(MiniMessage.miniMessage().deserialize(QUEUE_RESTORED_MESSAGE, modeName));
-                },
-                throwable -> {
-                    Status status = StatusProto.fromThrowable(throwable);
-                    if (status.getCode() == Code.NOT_FOUND_VALUE) return; // Player is not in a queue
+        MatchmakingSession session = this.sessionCreator.create(player, mode, ticket);
+        this.sessions.put(playerId, session);
+        this.ticketCache.put(ticket.getId(), ticket);
 
-                    LOGGER.error("Failed to get player queue info for player " + playerId, throwable);
-                }
-        ), ForkJoinPool.commonPool());
+        player.sendMessage(MiniMessage.miniMessage().deserialize(QUEUE_RESTORED_MESSAGE, modeName));
     }
 }

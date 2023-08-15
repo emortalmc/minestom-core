@@ -1,11 +1,10 @@
 package dev.emortal.minestom.core.module.core.badge;
 
-import com.google.common.util.concurrent.Futures;
-import dev.emortal.api.grpc.badge.BadgeManagerGrpc;
 import dev.emortal.api.grpc.badge.BadgeManagerProto;
 import dev.emortal.api.model.badge.Badge;
-import dev.emortal.api.utils.GrpcStubCollection;
-import dev.emortal.api.utils.callback.FunctionalFutureCallback;
+import dev.emortal.api.service.badges.BadgeService;
+import dev.emortal.api.service.badges.SetActiveBadgeResult;
+import io.grpc.StatusRuntimeException;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -26,11 +25,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
-public final class BadgeGui {
+final class BadgeGui {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final Logger LOGGER = LoggerFactory.getLogger(BadgeGui.class);
 
@@ -48,36 +45,26 @@ public final class BadgeGui {
     private static final Tag<Boolean> BADGE_ACTIVE_TAG = Tag.Boolean("badge_active");
     private static final Tag<Boolean> BADGE_UNLOCKED_TAG = Tag.Boolean("badge_unlocked");
 
-    private final BadgeManagerGrpc.BadgeManagerFutureStub badgeService = GrpcStubCollection.getBadgeManagerService().orElse(null);
-
-    private final @NotNull Inventory inventory;
+    private final Inventory inventory;
+    private final BadgeService badgeService;
     private final boolean canChangeActive;
 
-    public BadgeGui(@NotNull Player player) {
+    BadgeGui(@NotNull Player player, @NotNull BadgeService badgeService) {
         this.inventory = new Inventory(InventoryType.CHEST_4_ROW, TITLE);
+        this.badgeService = badgeService;
 
-        var badgesRequest = BadgeManagerProto.GetBadgesRequest.newBuilder().build();
-        var playerBadgesRequest = BadgeManagerProto.GetPlayerBadgesRequest.newBuilder().setPlayerId(player.getUuid().toString()).build();
-
-        final BadgeManagerProto.GetBadgesResponse badges;
-        final BadgeManagerProto.GetPlayerBadgesResponse playerBadges;
-        try {
-            badges = this.badgeService.getBadges(badgesRequest).get();
-            playerBadges = this.badgeService.getPlayerBadges(playerBadgesRequest).get();
-        } catch (final InterruptedException | ExecutionException exception) {
-            throw new RuntimeException(exception);
-        }
+        List<Badge> badges = this.badgeService.getAllBadges();
+        BadgeManagerProto.GetPlayerBadgesResponse playerBadges = this.badgeService.getPlayerBadges(player.getUuid());
 
         Set<String> ownedBadgeIds = playerBadges.getBadgesList().stream()
                 .map(Badge::getId)
                 .collect(Collectors.toUnmodifiableSet());
 
         boolean canChangeActive = true;
-        for (var badge : badges.getBadgesList()) {
-            if (badge.getRequired() && ownedBadgeIds.contains(badge.getId())) { // badge is required and player owns it
-                canChangeActive = false;
-                break;
-            }
+        for (Badge badge : badges) {
+            if (!badge.getRequired() || !ownedBadgeIds.contains(badge.getId())) continue; // badge is not required or player doesn't own it
+            canChangeActive = false;
+            break;
         }
         this.canChangeActive = canChangeActive;
 
@@ -86,14 +73,13 @@ public final class BadgeGui {
         player.openInventory(this.inventory);
     }
 
-    private void drawInventory(@NotNull BadgeManagerProto.GetBadgesResponse badgesResp,
-                               @NotNull Set<String> ownedBadgeIds, String activeBadgeId) {
-        List<Badge> badges = badgesResp.getBadgesList().stream()
+    private void drawInventory(@NotNull List<Badge> allBadges, @NotNull Set<String> ownedBadgeIds, @NotNull String activeBadgeId) {
+        List<Badge> sortedBadges = allBadges.stream()
                 .sorted(Comparator.comparingLong(Badge::getPriority))
                 .toList();
 
-        for (int i = 0; i < badges.size(); i++) {
-            Badge badge = badges.get(i);
+        for (int i = 0; i < sortedBadges.size(); i++) {
+            Badge badge = sortedBadges.get(i);
 
             boolean isOwned = ownedBadgeIds.contains(badge.getId());
             boolean isActive = badge.getId().equals(activeBadgeId);
@@ -102,7 +88,7 @@ public final class BadgeGui {
         }
     }
 
-    private void onClick(Player clicker, int slot, ClickType clickType, InventoryConditionResult result) {
+    private void onClick(@NotNull Player clicker, int slot, @NotNull ClickType clickType, @NotNull InventoryConditionResult result) {
         if (slot < 0 || slot >= this.inventory.getSize()) return;
 
         ItemStack clickedItem = this.inventory.getItemStack(slot);
@@ -120,40 +106,38 @@ public final class BadgeGui {
         if (!isUnlocked || isActive) return;
 
         String badgeId = clickedItem.meta().getTag(BADGE_ID_TAG);
-        var setPlayerBadgeRequest = BadgeManagerProto.SetActivePlayerBadgeRequest.newBuilder()
-                .setPlayerId(clicker.getUuid().toString())
-                .setBadgeId(badgeId)
-                .build();
+        SetActiveBadgeResult setResult;
+        try {
+            setResult = this.badgeService.setActiveBadge(clicker.getUuid(), badgeId);
+        } catch (StatusRuntimeException exception) {
+            LOGGER.error("Failed to set active badge for {}", clicker.getUsername(), exception);
+            clicker.sendMessage(Component.text("Failed to set active badge", NamedTextColor.RED));
+            return;
+        }
 
-        Futures.addCallback(this.badgeService.setActivePlayerBadge(setPlayerBadgeRequest), FunctionalFutureCallback.create(
-                unused -> {
-                    String badgeName = clickedItem.meta().getTag(BADGE_NAME_TAG);
-                    clicker.sendMessage(Component.text("Set active badge to " + badgeName, NamedTextColor.GREEN));
-                    new BadgeGui(clicker); // Reopen the gui
-                },
-                throwable -> {
-                    LOGGER.error("Failed to set active badge for {}: {}", clicker.getUsername(), throwable);
-                    clicker.sendMessage(Component.text("Failed to set active badge", NamedTextColor.RED));
-                }
-        ), ForkJoinPool.commonPool());
+        switch (setResult) {
+            case SUCCESS -> {
+                String badgeName = clickedItem.meta().getTag(BADGE_NAME_TAG);
+                clicker.sendMessage(Component.text("Set active badge to " + badgeName, NamedTextColor.GREEN));
+                new BadgeGui(clicker, this.badgeService); // Reopen the gui
+            }
+            case PLAYER_DOESNT_HAVE_BADGE -> {} // do nothing
+        }
     }
 
     private @NotNull ItemStack createItemStack(@NotNull Badge badge, boolean isOwned, boolean isActive) {
         Badge.GuiItem guiItem = badge.getGuiItem();
-
-        final List<Component> lore = new ArrayList<>();
+        List<Component> lore = new ArrayList<>();
 
         // Unlocked: Yes/No
         lore.add(MINI_MESSAGE.deserialize(isOwned ? UNLOCKED_LINE : NOT_UNLOCKED_LINE));
-
         if (isOwned) {
             // Active: Yes/No
             lore.add(MINI_MESSAGE.deserialize(isActive ? ACTIVE_LINE : NOT_ACTIVE_LINE));
         }
-
         lore.add(Component.empty());
 
-        for (var line : guiItem.getLoreList()) {
+        for (String line : guiItem.getLoreList()) {
             lore.add(MINI_MESSAGE.deserialize(line));
         }
 
@@ -162,15 +146,20 @@ public final class BadgeGui {
             lore.add(MINI_MESSAGE.deserialize(REQUIRED_LINE));
         }
 
-        return ItemStack.builder(Material.fromNamespaceId(guiItem.getMaterial()))
+        Material material = Material.fromNamespaceId(guiItem.getMaterial());
+        if (material == null) {
+            LOGGER.error("Failed to find material {} for badge {}", guiItem.getMaterial(), badge.getId());
+            return ItemStack.AIR;
+        }
+
+        return ItemStack.builder(material)
                 .displayName(MINI_MESSAGE.deserialize(guiItem.getDisplayName()))
                 .lore(lore)
                 .meta(builder -> builder.hideFlag(ItemHideFlag.HIDE_ATTRIBUTES)
                         .set(BADGE_ID_TAG, badge.getId())
                         .set(BADGE_NAME_TAG, badge.getFriendlyName())
                         .set(BADGE_ACTIVE_TAG, isActive)
-                        .set(BADGE_UNLOCKED_TAG, isOwned)
-                )
+                        .set(BADGE_UNLOCKED_TAG, isOwned))
                 .build();
     }
 }

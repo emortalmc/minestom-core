@@ -1,11 +1,11 @@
 package dev.emortal.minestom.core.utils.command.argument;
 
-import dev.emortal.api.grpc.badge.BadgeManagerGrpc;
-import dev.emortal.api.grpc.badge.BadgeManagerProto;
 import dev.emortal.api.model.badge.Badge;
+import dev.emortal.api.service.badges.BadgeService;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.CommandContext;
+import net.minestom.server.command.builder.arguments.Argument;
 import net.minestom.server.command.builder.arguments.ArgumentWord;
 import net.minestom.server.command.builder.suggestion.Suggestion;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
@@ -15,28 +15,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 public final class ArgumentBadge {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArgumentBadge.class);
 
-    private final BadgeManagerGrpc.BadgeManagerFutureStub badgeManager;
+    public static @NotNull Argument<String> create(@NotNull BadgeService badgeService, @NotNull String id, boolean onlyOwned) {
+        var handler = new ArgumentBadge(badgeService, id, onlyOwned);
+        return new ArgumentWord(id).setSuggestionCallback(handler::suggestionCallback);
+    }
 
+    private final BadgeService badgeService;
     private final String id;
     private final boolean onlyOwned;
 
-    public ArgumentBadge(@NotNull BadgeManagerGrpc.BadgeManagerFutureStub badgeManager, @NotNull String id, boolean onlyOwned) {
-        this.badgeManager = badgeManager;
+    private ArgumentBadge(@NotNull BadgeService badgeService, @NotNull String id, boolean onlyOwned) {
+        this.badgeService = badgeService;
         this.id = id;
         this.onlyOwned = onlyOwned;
-    }
-
-    public static @NotNull ArgumentWord create(@NotNull BadgeManagerGrpc.BadgeManagerFutureStub badgeManager, @NotNull String id, boolean onlyOwned) {
-        var handlerArgument = new ArgumentBadge(badgeManager, id, onlyOwned);
-        var createdArgument = new ArgumentWord(id);
-
-        createdArgument.setSuggestionCallback(handlerArgument::suggestionCallback);
-        return createdArgument;
     }
 
     public void suggestionCallback(@NotNull CommandSender sender, @NotNull CommandContext context, @NotNull Suggestion suggestion) {
@@ -52,28 +47,19 @@ public final class ArgumentBadge {
         }
 
         if (this.onlyOwned) {
-            handleOwnedBadgesSuggestion((Player) sender, input, suggestion);
+            this.handleOwnedBadgesSuggestion((Player) sender, input, suggestion);
         } else {
-            handleDefaultSuggestion(input, suggestion);
+            this.handleDefaultSuggestion(input, suggestion);
         }
     }
 
     private void handleDefaultSuggestion(@NotNull String input, @NotNull Suggestion suggestion) {
-        try {
-            var response = this.badgeManager.getBadges(BadgeManagerProto.GetBadgesRequest.getDefaultInstance()).get();
-            addBadgeSuggestions(suggestion, response.getBadgesList(), input);
-        } catch (InterruptedException | ExecutionException exception) {
-            LOGGER.error("Failed to get badges", exception);
-        }
+        List<Badge> badges = this.badgeService.getAllBadges();
+        this.addBadgeSuggestions(suggestion, badges, input);
     }
 
     private void handleOwnedBadgesSuggestion(@NotNull Player sender, @NotNull String input, @NotNull Suggestion suggestion) {
-        try {
-            var request = BadgeManagerProto.GetPlayerBadgesRequest.newBuilder().setPlayerId(sender.getUuid().toString()).build();
-            addBadgeSuggestions(suggestion, this.badgeManager.getPlayerBadges(request).get().getBadgesList(), input);
-        } catch (InterruptedException | ExecutionException exception) {
-            LOGGER.error("Failed to get badges", exception);
-        }
+        this.addBadgeSuggestions(suggestion, this.badgeService.getPlayerBadges(sender.getUuid()).getBadgesList(), input);
     }
 
     private void addBadgeSuggestions(@NotNull Suggestion suggestion, @NotNull List<Badge> badges, @NotNull String filter) {
