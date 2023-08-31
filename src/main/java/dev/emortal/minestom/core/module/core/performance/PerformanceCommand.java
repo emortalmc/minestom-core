@@ -36,7 +36,7 @@ import java.util.stream.Stream;
 public final class PerformanceCommand extends Command {
     private static final long SECONDS_IN_NANO = 1_000_000_000L;
     private static final int TPS = MinecraftServer.TICK_PER_SECOND;
-    private static final BigDecimal TPS_BASE = new BigDecimal(SECONDS_IN_NANO).multiply(new BigDecimal(TPS));
+    private static final BigDecimal TPS_BASE = BigDecimal.valueOf(SECONDS_IN_NANO).multiply(BigDecimal.valueOf(TPS));
 
     private static final Component VALUE_SEPARATOR = Component.text(", ");
     private static final Set<Pattern> EXCLUDED_MEMORY_SPACES = Stream.of("Metaspace", "Compressed Class Space", "^CodeHeap")
@@ -48,14 +48,14 @@ public final class PerformanceCommand extends Command {
     private final TpsRollingAverage tps1m = new TpsRollingAverage(60);
     private final TpsRollingAverage tps5m = new TpsRollingAverage(60 * 5);
     private final TpsRollingAverage tps15m = new TpsRollingAverage(60 * 15);
-    private final TpsRollingAverage[] tpsAverages = {tps5s, tps15s, tps1m, tps5m, tps15m};
+    private final TpsRollingAverage[] tpsAverages = {this.tps5s, this.tps15s, this.tps1m, this.tps5m, this.tps15m};
 
     private final RollingAverage mspt5s = new RollingAverage(TPS * 5);
     private final RollingAverage mspt15s = new RollingAverage(TPS * 15);
     private final RollingAverage mspt1m = new RollingAverage(TPS * 60);
     private final RollingAverage mspt5m = new RollingAverage(TPS * 60 * 5);
     private final RollingAverage mspt15m = new RollingAverage(TPS * 60 * 15);
-    private final RollingAverage[] msptAverages = {mspt5s, mspt15s, mspt1m, mspt5m, mspt15m};
+    private final RollingAverage[] msptAverages = {this.mspt5s, this.mspt15s, this.mspt1m, this.mspt5m, this.mspt15m};
 
     private long lastTickTime;
 
@@ -75,16 +75,16 @@ public final class PerformanceCommand extends Command {
         long difference = now - this.lastTickTime;
         if (difference <= SECONDS_IN_NANO) return;
 
-        BigDecimal currentTps = TPS_BASE.divide(new BigDecimal(difference), 30, RoundingMode.HALF_UP);
-        BigDecimal total = currentTps.multiply(new BigDecimal(difference));
+        BigDecimal currentTps = TPS_BASE.divide(BigDecimal.valueOf(difference), 30, RoundingMode.HALF_UP);
+        BigDecimal total = currentTps.multiply(BigDecimal.valueOf(difference));
 
-        for (var average : this.tpsAverages) {
+        for (TpsRollingAverage average : this.tpsAverages) {
             average.addSample(currentTps, difference, total);
         }
         this.lastTickTime = now;
 
-        var duration = new BigDecimal(tickTime);
-        for (var average : this.msptAverages) {
+        BigDecimal duration = BigDecimal.valueOf(tickTime);
+        for (RollingAverage average : this.msptAverages) {
             average.addSample(duration);
         }
     }
@@ -95,33 +95,32 @@ public final class PerformanceCommand extends Command {
         long ramUsage = totalMem - freeMem;
         float ramPercent = (float) ramUsage / (float) totalMem;
 
-        sender.sendMessage(
-                Component.text()
-                        .append(Component.newline())
+        sender.sendMessage(Component.text()
+                .append(Component.newline())
 
-                        // RAM usage information
-                        .append(Component.text("RAM Usage: ", NamedTextColor.GRAY))
-                        .append(ProgressBar.create(ramPercent, 30, "┃", NamedTextColor.GREEN, TextColor.color(0, 123, 0)))
-                        .append(Component.text(String.format(" %sMB / %sMB\n", ramUsage, totalMem), NamedTextColor.GRAY))
+                // RAM usage information
+                .append(Component.text("RAM Usage: ", NamedTextColor.GRAY))
+                .append(ProgressBar.create(ramPercent, 30, "┃", NamedTextColor.GREEN, TextColor.color(0, 123, 0)))
+                .append(Component.text(String.format(" %sMB / %sMB", ramUsage, totalMem), NamedTextColor.GRAY))
+                .append(Component.newline())
 
-                        // GC Young/Old generation collection information
-                        .append(Component.newline())
-                        .append(this.createGcComponent())
-                        .append(Component.newline())
+                // GC Young/Old generation collection information
+                .append(Component.newline())
+                .append(this.createGcComponent())
+                .append(Component.newline())
 
-                        // TPS averages
-                        .append(Component.text("\nTPS (5s, 15s, 1m, 5m, 15m): ", NamedTextColor.GRAY))
-                        .append(this.getTpsInfo(this.tpsAverages))
-                        .append(Component.newline())
+                // TPS averages
+                .append(Component.text("\nTPS (5s, 15s, 1m, 5m, 15m): ", NamedTextColor.GRAY))
+                .append(this.getTpsInfo(this.tpsAverages))
+                .append(Component.newline())
 
-                        // MSPT averages
-                        .append(Component.text("MSPT (5s, 15s, 1m, 5m, 15m): ", NamedTextColor.GRAY))
-                        .append(this.getMsptInfo(this.msptAverages))
-        );
+                // MSPT averages
+                .append(Component.text("MSPT (5s, 15s, 1m, 5m, 15m): ", NamedTextColor.GRAY))
+                .append(this.getMsptInfo(this.msptAverages)));
     }
 
-    private Component getTpsInfo(TpsRollingAverage[] averages) {
-        final TextComponent.Builder builder = Component.text();
+    private @NotNull Component getTpsInfo(@NotNull TpsRollingAverage[] averages) {
+        TextComponent.Builder builder = Component.text();
 
         for (int i = 0; i < averages.length; i++) {
             double average = averages[i].average();
@@ -136,7 +135,7 @@ public final class PerformanceCommand extends Command {
         return builder.build();
     }
 
-    private Component getMsptInfo(RollingAverage[] averages) {
+    private @NotNull Component getMsptInfo(@NotNull RollingAverage[] averages) {
         TextComponent.Builder builder = Component.text();
 
         for (int i = 0; i < averages.length; i++) {
@@ -152,25 +151,24 @@ public final class PerformanceCommand extends Command {
         return builder.build();
     }
 
-    private TextColor calculateTpsColor(double amount) {
+    private @NotNull TextColor calculateTpsColor(double amount) {
         float lerpDiv = (float) (amount / TPS);
         return TextColor.lerp(lerpDiv, NamedTextColor.RED, NamedTextColor.GREEN);
     }
 
-    private TextColor calculateMsptColor(double average) {
+    private @NotNull TextColor calculateMsptColor(double average) {
         float lerpDiv = (float) (average / MinecraftServer.TICK_MS);
         return TextColor.lerp(lerpDiv, NamedTextColor.GREEN, NamedTextColor.RED);
     }
 
-    private Component createGcComponent() {
+    private @NotNull Component createGcComponent() {
         TextComponent.Builder builder = Component.text();
-
         builder.append(Component.text("GC Info:", NamedTextColor.GRAY));
 
-        for (var entry : this.getGcInfo().entrySet()) {
+        for (Map.Entry<String, GcInfo> entry : this.getGcInfo().entrySet()) {
             TextComponent.Builder entryBuilder = Component.text();
 
-            final String lastRunText;
+            String lastRunText;
             if (entry.getValue() == null) {
                 lastRunText = "never";
             } else {
@@ -192,7 +190,7 @@ public final class PerformanceCommand extends Command {
         return builder.asComponent();
     }
 
-    private Component createGcHover(String name, GcInfo info) {
+    private @NotNull Component createGcHover(@NotNull String name, @NotNull GcInfo info) {
         return Component.text()
                 .append(Component.text("Name: ", NamedTextColor.GOLD))
                 .append(Component.text(name, NamedTextColor.GRAY))
@@ -216,15 +214,15 @@ public final class PerformanceCommand extends Command {
                 .build();
     }
 
-    private Component createMemoryUsagePeriod(Map<String, MemoryUsage> memoryUsageMap) {
+    private @NotNull Component createMemoryUsagePeriod(@NotNull Map<String, MemoryUsage> memoryUsageMap) {
         List<Component> lines = new ArrayList<>();
 
-        for (var entry : memoryUsageMap.entrySet()) {
+        for (Map.Entry<String, MemoryUsage> entry : memoryUsageMap.entrySet()) {
             if (EXCLUDED_MEMORY_SPACES.stream().anyMatch(pattern -> pattern.matcher(entry.getKey()).find())) {
                 continue;
             }
 
-            var text = Component.text()
+            Component text = Component.text()
                     .append(Component.text("  " + entry.getKey() + ": ", NamedTextColor.GOLD))
                     .append(Component.text(entry.getValue().getUsed() / 1024 / 1024 + "MB", NamedTextColor.GRAY))
                     .build();
@@ -234,13 +232,13 @@ public final class PerformanceCommand extends Command {
         return Component.join(JoinConfiguration.newlines(), lines);
     }
 
-    private Map<String, GcInfo> getGcInfo() {
+    private @NotNull Map<String, GcInfo> getGcInfo() {
         Map<String, GcInfo> gcInfo = new HashMap<>();
 
-        for (var garbageCollectorMXBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+        for (java.lang.management.GarbageCollectorMXBean garbageCollectorMXBean : ManagementFactory.getGarbageCollectorMXBeans()) {
             // We need to downcast to the com.sun.management (internal) one because we need the last GC info
             // It is unfortunate that the java.lang.management (API) one isn't very useful in what it actually provides
-            final GarbageCollectorMXBean bean = (GarbageCollectorMXBean) garbageCollectorMXBean;
+            GarbageCollectorMXBean bean = (GarbageCollectorMXBean) garbageCollectorMXBean;
 
             gcInfo.put(bean.getName(), bean.getLastGcInfo());
         }

@@ -2,8 +2,8 @@ package dev.emortal.minestom.core.module.messaging;
 
 import com.google.protobuf.AbstractMessage;
 import dev.emortal.api.modules.Module;
-import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.annotation.ModuleData;
+import dev.emortal.api.modules.env.ModuleEnvironment;
 import dev.emortal.api.utils.kafka.FriendlyKafkaConsumer;
 import dev.emortal.api.utils.kafka.FriendlyKafkaProducer;
 import dev.emortal.api.utils.kafka.KafkaSettings;
@@ -24,7 +24,7 @@ import java.util.function.Consumer;
  *
  * @version 1
  */
-@ModuleData(name = "messaging", required = true)
+@ModuleData(name = "messaging")
 public final class MessagingModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessagingModule.class);
 
@@ -55,17 +55,12 @@ public final class MessagingModule extends Module {
     public boolean onLoad() {
         if (!Environment.isProduction() && !PortUtils.isPortUsed(KAFKA_HOST, Integer.parseInt(KAFKA_PORT))) {
             LOGGER.warn("Kafka is not available, disabling Kafka consumer and producer");
-
-            this.kafkaConsumer = null;
-            this.kafkaProducer = null;
             return false;
         }
 
-        var kafkaSettings = KafkaSettings.builder().bootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT).build();
-
-        this.kafkaConsumer = new FriendlyKafkaConsumer(kafkaSettings);
-        this.kafkaProducer = new FriendlyKafkaProducer(kafkaSettings);
-
+        KafkaSettings settings = KafkaSettings.builder().bootstrapServers(KAFKA_HOST + ":" + KAFKA_PORT).build();
+        this.kafkaConsumer = new FriendlyKafkaConsumer(settings);
+        this.kafkaProducer = new FriendlyKafkaProducer(settings);
         return true;
     }
 

@@ -7,8 +7,8 @@ import org.jetbrains.annotations.NotNull;
 
 public final class ProgressBar {
 
-    public static Component create(float percentage, int charCount, @NotNull String character, @NotNull RGBLike completeColour,
-                                   @NotNull RGBLike incompleteColour) {
+    public static @NotNull Component create(float percentage, int charCount, @NotNull String character, @NotNull RGBLike completeColour,
+                                            @NotNull RGBLike incompleteColour) {
         int completeCharacters = (int) Math.ceil((percentage * charCount));
         int incompleteCharacters = (int) Math.floor((1 - percentage) * charCount);
 

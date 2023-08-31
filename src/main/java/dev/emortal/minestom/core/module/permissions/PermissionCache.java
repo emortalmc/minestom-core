@@ -1,10 +1,11 @@
 package dev.emortal.minestom.core.module.permissions;
 
 import com.google.common.collect.Sets;
-import dev.emortal.api.grpc.permission.PermissionProto;
-import dev.emortal.api.grpc.permission.PermissionServiceGrpc;
+import dev.emortal.api.grpc.permission.PermissionProto.PlayerRolesResponse;
 import dev.emortal.api.model.permission.PermissionNode;
 import dev.emortal.api.model.permission.Role;
+import dev.emortal.api.service.permission.PermissionService;
+import io.grpc.StatusRuntimeException;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.Event;
@@ -19,23 +20,23 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-public class PermissionCache {
+public final class PermissionCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(PermissionCache.class);
 
-    private final PermissionServiceGrpc.PermissionServiceFutureStub permissionService;
+    private final @NotNull PermissionService permissionService;
 
     private final Map<String, CachedRole> roleCache = Collections.synchronizedMap(new LinkedHashMap<>());
     private final Map<UUID, User> userCache = new ConcurrentHashMap<>();
 
-    public PermissionCache(PermissionServiceGrpc.PermissionServiceFutureStub permissionService, EventNode<Event> eventNode) {
+    public PermissionCache(@NotNull PermissionService permissionService, @NotNull EventNode<Event> eventNode) {
         this.permissionService = permissionService;
 
         eventNode.addListener(PlayerDisconnectEvent.class, this::onDisconnect);
@@ -45,14 +46,16 @@ public class PermissionCache {
     }
 
     private void loadRoles() {
+        List<Role> roles;
         try {
-            var response = this.permissionService.getAllRoles(PermissionProto.GetAllRolesRequest.getDefaultInstance()).get();
+            roles = this.permissionService.getAllRoles();
+        } catch (StatusRuntimeException exception) {
+            LOGGER.error("Failed to load all roles", exception);
+            return;
+        }
 
-            for (Role role : response.getRolesList()) {
-                this.addRole(role);
-            }
-        } catch (InterruptedException | ExecutionException exception) {
-            LOGGER.error("Couldn't load roles", exception);
+        for (Role role : roles) {
+            this.addRole(role);
         }
     }
 
@@ -62,26 +65,28 @@ public class PermissionCache {
      * @param player the player to load
      */
     private void loadUser(@NotNull Player player) {
+        PlayerRolesResponse response;
         try {
-            var request = PermissionProto.GetPlayerRolesRequest.newBuilder().setPlayerId(player.getUuid().toString()).build();
-
-            Set<String> roleIds = Sets.newConcurrentHashSet(this.permissionService.getPlayerRoles(request).get().getRoleIdsList());
-            User user = new User(player.getUuid(), roleIds);
-            this.userCache.put(player.getUuid(), user);
-
-            Set<Permission> permissions = new HashSet<>();
-            for (String roleId : roleIds) {
-                CachedRole role = this.roleCache.get(roleId);
-                if (role == null) continue;
-
-                permissions.addAll(role.permissions());
-            }
-
-            player.getAllPermissions().clear();
-            player.getAllPermissions().addAll(permissions);
-        } catch (InterruptedException | ExecutionException exception) {
-            throw new RuntimeException(exception);
+            response = this.permissionService.getPlayerRoles(player.getUuid());
+        } catch (StatusRuntimeException exception) {
+            LOGGER.error("Failed to get roles for '{}'", player.getUsername(), exception);
+            return;
         }
+
+        Set<String> roleIds = Sets.newConcurrentHashSet(response.getRoleIdsList());
+        User user = new User(player.getUuid(), roleIds);
+        this.userCache.put(player.getUuid(), user);
+
+        Set<Permission> permissions = new HashSet<>();
+        for (String roleId : roleIds) {
+            CachedRole role = this.roleCache.get(roleId);
+            if (role == null) continue;
+
+            permissions.addAll(role.permissions());
+        }
+
+        player.getAllPermissions().clear();
+        player.getAllPermissions().addAll(permissions);
     }
 
     private void updateUserPermissions(@NotNull User user) {
@@ -113,11 +118,11 @@ public class PermissionCache {
         return permissions;
     }
 
-    public Optional<CachedRole> getRole(String id) {
+    public Optional<CachedRole> getRole(@NotNull String id) {
         return Optional.ofNullable(this.roleCache.get(id));
     }
 
-    public Optional<User> getUser(UUID id) {
+    public Optional<User> getUser(@NotNull UUID id) {
         return Optional.ofNullable(this.userCache.get(id));
     }
 
@@ -128,7 +133,6 @@ public class PermissionCache {
      */
     void addRole(@NotNull Role roleResponse) {
         CachedRole role = CachedRole.fromRole(roleResponse);
-
         this.roleCache.put(roleResponse.getId(), role);
 
         for (User user : this.userCache.values()) {
@@ -139,10 +143,8 @@ public class PermissionCache {
     }
 
     void removeRole(@NotNull String id) {
-        for (User user : this.userCache.values()) {
-            if (user.roleIds().contains(id)) {
-                this.removeRoleFromUser(user.id(), id);
-            }
+        for (User(UUID userId, Set<String> roleIds) : this.userCache.values()) {
+            if (roleIds.contains(id)) this.removeRoleFromUser(userId, id);
         }
 
         this.roleCache.remove(id);
@@ -188,7 +190,7 @@ public class PermissionCache {
         this.loadUser(event.getPlayer());
     }
 
-    public record User(UUID id, Set<String> roleIds) {
+    public record User(@NotNull UUID id, @NotNull Set<String> roleIds) {
     }
 
     public record CachedRole(@NotNull String id, @NotNull Set<Permission> permissions, int priority,

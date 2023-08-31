@@ -47,7 +47,7 @@ public final class MinestomServer {
     private final MinecraftServer server;
     private final ModuleManager moduleManager;
 
-    private MinestomServer(Builder builder) {
+    private MinestomServer(@NotNull Builder builder) {
         this.address = builder.address;
         this.port = builder.port;
 
@@ -63,11 +63,12 @@ public final class MinestomServer {
         LOGGER.info("Starting server at {}:{}", builder.address, builder.port);
 
         List<LoadableModule> modules = new ArrayList<>();
-        for (var entry : builder.modules.entrySet()) {
+        for (Map.Entry<Class<? extends Module>, LoadableModule.Creator> entry : builder.modules.entrySet()) {
             modules.add(new LoadableModule(entry.getKey(), entry.getValue()));
         }
 
-        this.moduleManager = new ModuleManager(modules);
+        this.moduleManager = ModuleManager.builder().build();
+        this.moduleManager.loadModules(modules);
         MinecraftServer.getSchedulerManager().buildShutdownTask(this.moduleManager::onUnload);
     }
 
@@ -93,7 +94,7 @@ public final class MinestomServer {
 
     public static final class Builder {
 
-        private String address = getValue("minestom.address", DEFAULT_ADDRESS);
+        private @NotNull String address = getValue("minestom.address", DEFAULT_ADDRESS);
         private int port = Integer.parseInt(getValue("minestom.port", DEFAULT_PORT));
         private boolean mojangAuth = false;
 
@@ -102,29 +103,29 @@ public final class MinestomServer {
         private Builder() {
             // we do this because env variables in dockerfiles break k8s env variables?
             // So we can't add system properties in the dockerfile, but we can add them at runtime
-            for (var entry : System.getenv().entrySet()) {
+            for (Map.Entry<String, String> entry : System.getenv().entrySet()) {
                 if (System.getProperty(entry.getKey()) == null) {
                     System.setProperty(entry.getKey(), entry.getValue());
                 }
             }
         }
 
-        public Builder address(String address) {
+        public @NotNull Builder address(@NotNull String address) {
             this.address = address;
             return this;
         }
 
-        public Builder port(int port) {
+        public @NotNull Builder port(int port) {
             this.port = port;
             return this;
         }
 
-        public Builder mojangAuth(boolean mojangAuth) {
+        public @NotNull Builder mojangAuth(boolean mojangAuth) {
             this.mojangAuth = mojangAuth;
             return this;
         }
 
-        public Builder commonModules() {
+        public @NotNull Builder commonModules() {
             return this.module(KubernetesModule.class, KubernetesModule::new)
                     .module(CoreModule.class, CoreModule::new)
                     .module(PermissionModule.class, PermissionModule::new)
@@ -134,12 +135,12 @@ public final class MinestomServer {
                     .module(MatchmakerModule.class, MatchmakerModule::new);
         }
 
-        public Builder module(@NotNull Class<? extends Module> clazz, @NotNull LoadableModule.Creator moduleCreator) {
+        public @NotNull Builder module(@NotNull Class<? extends Module> clazz, @NotNull LoadableModule.Creator moduleCreator) {
             this.modules.put(clazz, moduleCreator);
             return this;
         }
 
-        public MinestomServer build() {
+        public @NotNull MinestomServer build() {
             return new MinestomServer(this);
         }
 
@@ -147,7 +148,7 @@ public final class MinestomServer {
             this.build().start();
         }
 
-        private static String getValue(String key, String defaultValue) {
+        private static @NotNull String getValue(@NotNull String key, @NotNull String defaultValue) {
             String value = System.getProperty(key);
             if (value != null && !value.isEmpty()) return value;
 

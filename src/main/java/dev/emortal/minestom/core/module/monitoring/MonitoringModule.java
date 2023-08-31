@@ -1,9 +1,8 @@
 package dev.emortal.minestom.core.module.monitoring;
 
 import com.sun.net.httpserver.HttpServer;
-import dev.emortal.api.modules.Module;
-import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.annotation.ModuleData;
+import dev.emortal.api.modules.env.ModuleEnvironment;
 import dev.emortal.minestom.core.Environment;
 import dev.emortal.minestom.core.module.MinestomModule;
 import io.micrometer.core.instrument.Metrics;
@@ -30,10 +29,13 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Objects;
 
-@ModuleData(name = "monitoring", required = false)
+@ModuleData(name = "monitoring")
 public final class MonitoringModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(MonitoringModule.class);
-    private static final @NotNull String FLEET_NAME = Objects.requireNonNullElse(System.getenv("FLEET_NAME"), "unknown");
+
+    private static final boolean ENABLED = Boolean.parseBoolean(System.getenv("MONITORING_ENABLED"));
+    private static final String FLEET_NAME = Objects.requireNonNullElse(System.getenv("FLEET_NAME"), "unknown");
+    private static final String PYROSCOPE_SERVER_ADDRESS = System.getenv("PYROSCOPE_SERVER_ADDRESS");
 
     public MonitoringModule(@NotNull ModuleEnvironment environment) {
         super(environment);
@@ -41,9 +43,8 @@ public final class MonitoringModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        String envEnabled = System.getenv("MONITORING_ENABLED");
-        if (!(Environment.isProduction() || Boolean.parseBoolean(envEnabled))) {
-            LOGGER.info("Monitoring is disabled (production: {}, env: {})", Environment.isProduction(), envEnabled);
+        if (!Environment.isProduction() || !ENABLED) {
+            LOGGER.warn("Monitoring is disabled.");
             return false;
         }
 
@@ -57,23 +58,7 @@ public final class MonitoringModule extends MinestomModule {
         }
 
         if (Environment.isProduction()) {
-            String pyroscopeAddress = System.getenv("PYROSCOPE_SERVER_ADDRESS");
-            if (pyroscopeAddress == null) {
-                LOGGER.warn("PYROSCOPE_SERVER_ADDRESS is not set, Pyroscope will not be enabled");
-            } else {
-                Pyroscope.setStaticLabels(Map.of(
-                        "fleet", FLEET_NAME,
-                        "pod", Environment.getHostname()
-                ));
-
-                var config = new Config.Builder()
-                        .setApplicationName(FLEET_NAME)
-                        .setProfilingEvent(EventType.ITIMER)
-                        .setFormat(Format.JFR)
-                        .setServerAddress(pyroscopeAddress)
-                        .build();
-                PyroscopeAgent.start(new PyroscopeAgent.Options.Builder(config).build());
-            }
+            this.setupPyroscope();
         }
 
         // Java
@@ -108,6 +93,26 @@ public final class MonitoringModule extends MinestomModule {
             throw new RuntimeException(exception);
         }
         return true;
+    }
+
+    private void setupPyroscope() {
+        if (PYROSCOPE_SERVER_ADDRESS == null) {
+            LOGGER.warn("PYROSCOPE_SERVER_ADDRESS not set. Pyroscope will not be enabled.");
+            return;
+        }
+
+        Pyroscope.setStaticLabels(Map.of(
+                "fleet", FLEET_NAME,
+                "pod", Environment.getHostname()
+        ));
+
+        Config config = new Config.Builder()
+                .setApplicationName(FLEET_NAME)
+                .setProfilingEvent(EventType.ITIMER)
+                .setFormat(Format.JFR)
+                .setServerAddress(PYROSCOPE_SERVER_ADDRESS)
+                .build();
+        PyroscopeAgent.start(new PyroscopeAgent.Options.Builder(config).build());
     }
 
     @Override

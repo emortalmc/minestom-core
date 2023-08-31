@@ -27,10 +27,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class MinestomMetrics implements MeterBinder {
 
+    private final @NotNull EventNode<Event> eventNode;
+
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final AtomicInteger ticks = new AtomicInteger();
-
-    private final EventNode<Event> eventNode;
 
     public MinestomMetrics(@NotNull EventNode<Event> eventNode) {
         this.eventNode = eventNode;
@@ -46,12 +46,12 @@ public final class MinestomMetrics implements MeterBinder {
                 .description("The amount of instances currently loaded")
                 .register(registry);
 
-        var chunkGauge = MultiGauge.builder("minestom.chunks")
+        MultiGauge chunkGauge = MultiGauge.builder("minestom.chunks")
                 .description("The amount of chunks currently loaded per instance")
                 .baseUnit("chunks")
                 .register(registry);
 
-        var entityGauge = MultiGauge.builder("minestom.entities")
+        MultiGauge entityGauge = MultiGauge.builder("minestom.entities")
                 .description("The amount of entities currently loaded per instance")
                 .baseUnit("entities")
                 .register(registry);
@@ -71,7 +71,7 @@ public final class MinestomMetrics implements MeterBinder {
             entityGauge.register(entityRows);
         }).repeat(5, ChronoUnit.SECONDS).delay(TaskSchedule.nextTick()).schedule();
 
-        var tickTimer = Timer.builder("minestom.tick.time")
+        Timer tickTimer = Timer.builder("minestom.tick.time")
                 .description("The time taken to process a tick, commonly referred to as MSPT")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .publishPercentileHistogram()
@@ -85,7 +85,7 @@ public final class MinestomMetrics implements MeterBinder {
             this.ticks.incrementAndGet();
         });
 
-        var tickPerSecond = DistributionSummary.builder("minestom.tick.per_second")
+        DistributionSummary tickPerSecond = DistributionSummary.builder("minestom.tick.per_second")
                 .description("The amount of ticks per second")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .publishPercentileHistogram()

@@ -9,9 +9,9 @@ import org.jetbrains.annotations.NotNull;
 
 public final class RollingAverage {
 
-    private final Queue<BigDecimal> samples;
+    private final @NotNull Queue<BigDecimal> samples;
     private final int size;
-    private BigDecimal sum = BigDecimal.ZERO;
+    private @NotNull BigDecimal sum = BigDecimal.ZERO;
 
     public RollingAverage(int size) {
         this.samples = new ArrayDeque<>(size);
@@ -36,7 +36,7 @@ public final class RollingAverage {
     }
 
     public double mean() {
-        final int sampleCount;
+        int sampleCount;
         synchronized (this) {
             if (this.samples.isEmpty()) return 0;
             sampleCount = this.samples.size();
@@ -49,8 +49,8 @@ public final class RollingAverage {
     public double min() {
         BigDecimal min = null;
         synchronized (this) {
-            for (var sample : this.samples) {
-                if (min == null | sample.compareTo(min) < 0) min = sample;
+            for (BigDecimal sample : this.samples) {
+                if (min == null || sample.compareTo(min) < 0) min = sample;
             }
         }
         return min == null ? 0 : min.doubleValue();
@@ -59,8 +59,8 @@ public final class RollingAverage {
     public double max() {
         BigDecimal max = null;
         synchronized (this) {
-            for (var sample : this.samples) {
-                if (max == null | sample.compareTo(max) > 0) max = sample;
+            for (BigDecimal sample : this.samples) {
+                if (max == null || sample.compareTo(max) > 0) max = sample;
             }
         }
         return max == null ? 0 : max.doubleValue();
@@ -75,7 +75,7 @@ public final class RollingAverage {
     public double percentile(double percentile) {
         if (percentile < 0 || percentile > 1) throw new IllegalArgumentException("Percentile must be between 0 and 1!");
 
-        final BigDecimal[] sortedSamples;
+        BigDecimal[] sortedSamples;
         synchronized (this) {
             if (this.samples.isEmpty()) return 0;
             sortedSamples = this.samples.toArray(new BigDecimal[0]);

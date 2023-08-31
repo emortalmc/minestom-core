@@ -13,35 +13,38 @@ import org.jetbrains.annotations.NotNull;
 
 public final class SdkSubCommands {
 
-    private static Component generateMessage(String sdk, String method, AgonesCommand.RequestStatus status, String message) {
-        var text = "Agones >> [%s.%s] (%s) %s".formatted(sdk, method, status.name(), message);
+    private static @NotNull Component generateMessage(@NotNull String sdk, @NotNull String method, @NotNull AgonesCommand.RequestStatus status,
+                                                      @NotNull String message) {
+        String text = "Agones >> [%s.%s] (%s) %s".formatted(sdk, method, status.name(), message);
         return Component.text(text, status.getColor());
     }
 
-    private final SDKGrpc.SDKStub sdk;
+    private final @NotNull SDKGrpc.SDKStub sdk;
 
     public SdkSubCommands(@NotNull SDKGrpc.SDKStub sdk) {
         this.sdk = sdk;
     }
 
-    private <T> StreamObserver<T> createCallback(CommandSender sender, String sdkMethod, Function<T, String> nextMessageProvider) {
+    private <T> @NotNull StreamObserver<T> createCallback(@NotNull CommandSender sender, @NotNull String sdkMethod,
+                                                          @NotNull Function<T, String> nextMessageProvider) {
         return new StreamObserver<>() {
+
             @Override
             public void onNext(@NotNull T value) {
                 String nextMessage = nextMessageProvider.apply(value);
-                var response = generateMessage("SDK", sdkMethod, AgonesCommand.RequestStatus.NEXT, nextMessage);
+                Component response = generateMessage("SDK", sdkMethod, AgonesCommand.RequestStatus.NEXT, nextMessage);
                 sender.sendMessage(response);
             }
 
             @Override
             public void onError(@NotNull Throwable exception) {
-                var response = generateMessage("SDK", sdkMethod, AgonesCommand.RequestStatus.ERROR, exception.getMessage());
+                Component response = generateMessage("SDK", sdkMethod, AgonesCommand.RequestStatus.ERROR, exception.getMessage());
                 sender.sendMessage(response);
             }
 
             @Override
             public void onCompleted() {
-                var response = generateMessage("SDK", sdkMethod, AgonesCommand.RequestStatus.COMPLETED, "");
+                Component response = generateMessage("SDK", sdkMethod, AgonesCommand.RequestStatus.COMPLETED, "");
                 sender.sendMessage(response);
             }
         };
@@ -53,7 +56,7 @@ public final class SdkSubCommands {
 
     public void executeReserve(@NotNull CommandSender sender, @NotNull CommandContext context) {
         Duration duration = context.get("duration");
-        var agonesDuration = AgonesSDKProto.Duration.newBuilder().setSeconds(duration.getSeconds()).build();
+        AgonesSDKProto.Duration agonesDuration = AgonesSDKProto.Duration.newBuilder().setSeconds(duration.getSeconds()).build();
 
         this.sdk.reserve(agonesDuration, this.createCallback(sender, "Reserve", v -> "Reserved for %s seconds".formatted(duration.getSeconds())));
     }
@@ -64,17 +67,17 @@ public final class SdkSubCommands {
 
     public void executeSetAnnotation(@NotNull CommandSender sender, @NotNull CommandContext context) {
         String key = context.get("key");
-        String value = context.get("metaValue");
+        String value = context.get("value");
 
-        var keyValue = AgonesSDKProto.KeyValue.newBuilder().setKey(key).setValue(value).build();
+        AgonesSDKProto.KeyValue keyValue = AgonesSDKProto.KeyValue.newBuilder().setKey(key).setValue(value).build();
         this.sdk.setAnnotation(keyValue, this.createCallback(sender, "SetAnnotation", v -> "Set annotation %s to %s".formatted(key, v)));
     }
 
     public void executeSetLabel(@NotNull CommandSender sender, @NotNull CommandContext context) {
         String key = context.get("key");
-        String value = context.get("metaValue");
+        String value = context.get("value");
 
-        var keyValue = AgonesSDKProto.KeyValue.newBuilder().setKey(key).setValue(value).build();
+        AgonesSDKProto.KeyValue keyValue = AgonesSDKProto.KeyValue.newBuilder().setKey(key).setValue(value).build();
         this.sdk.setLabel(keyValue, this.createCallback(sender, "SetLabel", v -> "Set label %s to %s".formatted(key, v)));
     }
 

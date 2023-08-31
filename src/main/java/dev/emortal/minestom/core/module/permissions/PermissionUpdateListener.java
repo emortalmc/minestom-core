@@ -5,15 +5,12 @@ import dev.emortal.api.message.permission.RoleUpdateMessage;
 import dev.emortal.api.model.permission.Role;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
-public class PermissionUpdateListener {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PermissionUpdateListener.class);
+public final class PermissionUpdateListener {
 
-    private final PermissionCache permissionCache;
+    private final @NotNull PermissionCache permissionCache;
 
     public PermissionUpdateListener(@NotNull PermissionCache permissionCache, @NotNull MessagingModule module) {
         this.permissionCache = permissionCache;
@@ -27,7 +24,6 @@ public class PermissionUpdateListener {
         switch (message.getChangeType()) {
             case CREATE, MODIFY -> this.permissionCache.addRole(role);
             case DELETE -> this.permissionCache.removeRole(role.getId());
-            case UNRECOGNIZED -> LOGGER.warn("Received unrecognized role ChangeType message: {}", message);
         }
     }
 
@@ -38,7 +34,6 @@ public class PermissionUpdateListener {
         switch (message.getChangeType()) {
             case ADD -> this.permissionCache.addRoleToUser(playerId, roleId);
             case REMOVE -> this.permissionCache.removeRoleFromUser(playerId, roleId);
-            case UNRECOGNIZED -> LOGGER.warn("Received unrecognized player roles ChangeType message: {}", message);
         }
     }
 }

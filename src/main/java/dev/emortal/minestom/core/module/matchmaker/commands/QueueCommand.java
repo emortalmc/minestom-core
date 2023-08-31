@@ -1,18 +1,14 @@
 package dev.emortal.minestom.core.module.matchmaker.commands;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.rpc.Status;
-import dev.emortal.api.kurushimi.MatchmakerGrpc;
-import dev.emortal.api.kurushimi.QueueByPlayerErrorResponse;
-import dev.emortal.api.kurushimi.QueueByPlayerRequest;
-import dev.emortal.api.kurushimi.QueueByPlayerResponse;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeCollection;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
+import dev.emortal.api.service.matchmaker.MatchmakerService;
+import dev.emortal.api.service.matchmaker.QueuePlayerResult;
 import dev.emortal.minestom.core.module.matchmaker.CommonMatchmakerError;
-import io.grpc.protobuf.StatusProto;
-import java.util.Collection;
+import io.grpc.StatusRuntimeException;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.command.CommandSender;
@@ -26,21 +22,19 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Stream;
 
-public class QueueCommand extends Command {
+public final class QueueCommand extends Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueueCommand.class);
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
-    private final MatchmakerGrpc.MatchmakerFutureStub matchmaker;
-    private final Collection<GameModeConfig> configs;
+    private final MatchmakerService matchmaker;
+    private final GameModeCollection gameModeCollection;
 
-    public QueueCommand(@NotNull MatchmakerGrpc.MatchmakerFutureStub matchmaker, @NotNull GameModeCollection gameModeCollection) {
+    public QueueCommand(@NotNull MatchmakerService matchmaker, @NotNull GameModeCollection gameModeCollection) {
         super("play", "queue");
         this.matchmaker = matchmaker;
-        this.configs = gameModeCollection.getAllConfigs();
+        this.gameModeCollection = gameModeCollection;
 
         this.setCondition(Conditions::playerOnly);
 
@@ -48,7 +42,7 @@ public class QueueCommand extends Command {
         modeArg.setSuggestionCallback((sender, context, suggestion) -> {
             String inputLower = context.getRaw("mode").toLowerCase();
 
-            Stream<String> configNames = this.configs.stream()
+            Stream<String> configNames = this.gameModeCollection.getAllConfigs().stream()
                     .filter(GameModeConfig::enabled)
                     .map(GameModeConfig::friendlyName);
 
@@ -67,7 +61,7 @@ public class QueueCommand extends Command {
         String[] modeArg = context.get("mode");
         String modeName = String.join(" ", modeArg);
 
-        GameModeConfig mode = this.configs.stream()
+        GameModeConfig mode = this.gameModeCollection.getAllConfigs().stream()
                 .filter(GameModeConfig::enabled)
                 .filter(config -> config.friendlyName().equalsIgnoreCase(modeName))
                 .findFirst()
@@ -78,66 +72,42 @@ public class QueueCommand extends Command {
             return;
         }
 
-        var request = QueueByPlayerRequest.newBuilder()
-                .setPlayerId(player.getUuid().toString())
-                .setGameModeId(mode.id())
-                .build();
-
-        Futures.addCallback(this.matchmaker.queueByPlayer(request), new QueueCallback(sender, mode), ForkJoinPool.commonPool());
-    }
-
-    private record QueueCallback(@NotNull CommandSender sender, @NotNull GameModeConfig mode) implements FutureCallback<QueueByPlayerResponse> {
-
-        @Override
-        public void onSuccess(@NotNull QueueByPlayerResponse result) {
-            var modeName = Placeholder.unparsed("mode", this.mode.friendlyName());
-            this.sender.sendMessage(MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_SUCCESS, modeName));
+        QueuePlayerResult result;
+        try {
+            result = this.matchmaker.queuePlayer(mode.id(), player.getUuid());
+        } catch (StatusRuntimeException exception) {
+            LOGGER.error("Failed to queue '{}' for '{}'", player.getUsername(), mode.id(), exception);
+            player.sendMessage(Component.text("An unknown error occurred", NamedTextColor.RED));
+            return;
         }
 
-        @Override
-        public void onFailure(@NotNull Throwable throwable) {
-            Status status = StatusProto.fromThrowable(throwable);
-            if (status == null || status.getDetailsCount() == 0) {
-                this.sender.sendMessage("An unknown error occurred while queuing for " + this.mode.friendlyName());
-                LOGGER.error("An unknown error occurred while queuing for " + this.mode.friendlyName(), throwable);
-                return;
+        switch (result) {
+            case SUCCESS -> {
+                var modeNamePlaceholder = Placeholder.unparsed("mode", mode.friendlyName());
+                sender.sendMessage(MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_SUCCESS, modeNamePlaceholder));
             }
-
-            final QueueByPlayerErrorResponse response;
-            try {
-                response = status.getDetails(0).unpack(QueueByPlayerErrorResponse.class);
-            } catch (InvalidProtocolBufferException exception) {
-                this.sender.sendMessage("An unknown error occurred while queuing for " + this.mode.friendlyName());
-                LOGGER.error("An unknown error occurred while queuing for " + this.mode.friendlyName(), exception);
-                return;
+            case ALREADY_IN_QUEUE -> sender.sendMessage(CommonMatchmakerError.QUEUE_ERR_ALREADY_IN_QUEUE);
+            case NO_PERMISSION -> sender.sendMessage(CommonMatchmakerError.PLAYER_PERMISSION_DENIED);
+            case INVALID_MAP -> {
+                LOGGER.error("Invalid map for gamemode '{}'", mode.friendlyName());
+                var modeNamePlaceholder = Placeholder.unparsed("mode", mode.friendlyName());
+                sender.sendMessage(MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeNamePlaceholder));
             }
-
-            var modeName = Placeholder.unparsed("mode", this.mode.friendlyName());
-            var message = switch (response.getReason()) {
-                case ALREADY_IN_QUEUE -> CommonMatchmakerError.QUEUE_ERR_ALREADY_IN_QUEUE;
-                case NO_PERMISSION -> MINI_MESSAGE.deserialize(CommonMatchmakerError.PLAYER_PERMISSION_DENIED);
-                case INVALID_MAP -> {
-                    LOGGER.error("Invalid map for gamemode " + this.mode.friendlyName());
-                    yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeName);
-                }
-                case PARTY_TOO_LARGE -> {
-                    final var max = Placeholder.unparsed("max", String.valueOf(this.mode.partyRestrictions().maxSize()));
-                    yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_PARTY_TOO_LARGE, modeName, max);
-                }
-                case INVALID_GAME_MODE -> {
-                    LOGGER.error("Invalid gamemode " + this.mode.friendlyName());
-                    yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeName);
-                }
-                case GAME_MODE_DISABLED -> {
-                    LOGGER.error("Gamemode " + this.mode.friendlyName() + " is disabled");
-                    yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeName);
-                }
-                default -> {
-                    LOGGER.error("An unknown error occurred while queuing for " + this.mode.friendlyName(), throwable);
-                    yield MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeName);
-                }
-            };
-            this.sender.sendMessage(message);
+            case PARTY_TOO_LARGE -> {
+                var modeNamePlaceholder = Placeholder.unparsed("mode", mode.friendlyName());
+                var max = Placeholder.unparsed("max", String.valueOf(mode.partyRestrictions().maxSize()));
+                sender.sendMessage(MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_PARTY_TOO_LARGE, modeNamePlaceholder, max));
+            }
+            case INVALID_GAME_MODE -> {
+                LOGGER.error("Invalid gamemode '{}'", mode.friendlyName());
+                var modeNamePlaceholder = Placeholder.unparsed("mode", mode.friendlyName());
+                sender.sendMessage(MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeNamePlaceholder));
+            }
+            case GAME_MODE_DISABLED -> {
+                LOGGER.error("Gamemode '{}' is disabled", mode.friendlyName());
+                var modeNamePlaceholder = Placeholder.unparsed("mode", mode.friendlyName());
+                sender.sendMessage(MINI_MESSAGE.deserialize(CommonMatchmakerError.QUEUE_ERR_UNKNOWN, modeNamePlaceholder));
+            }
         }
     }
 }

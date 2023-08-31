@@ -1,16 +1,19 @@
 package dev.emortal.minestom.core.module.core;
 
-import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
-import dev.emortal.api.utils.resolvers.PlayerResolver;
+import dev.emortal.api.modules.annotation.ModuleData;
+import dev.emortal.api.modules.env.ModuleEnvironment;
+import dev.emortal.api.service.badges.BadgeService;
+import dev.emortal.api.service.mcplayer.McPlayerService;
+import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.core.badge.BadgeCommand;
 import dev.emortal.minestom.core.module.core.performance.PerformanceCommand;
+import dev.emortal.minestom.core.utils.resolver.PlayerResolver;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.entity.Player;
+import net.minestom.server.command.CommandManager;
 import org.jetbrains.annotations.NotNull;
 
-@ModuleData(name = "core", required = false)
+@ModuleData(name = "core")
 public final class CoreModule extends MinestomModule {
 
     public CoreModule(@NotNull ModuleEnvironment environment) {
@@ -19,16 +22,13 @@ public final class CoreModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        PlayerResolver.setPlatformUsernameResolver(username -> {
-            Player player = MinecraftServer.getConnectionManager().getPlayer(username);
-            if (player == null) return null;
+        McPlayerService playerService = GrpcStubCollection.getPlayerService().orElse(null);
+        PlayerResolver playerResolver = new PlayerResolver(playerService, MinecraftServer.getConnectionManager());
 
-            return new PlayerResolver.CachedMcPlayer(player.getUuid(), player.getUsername(), player.isOnline());
-        });
-
-        var commandManager = MinecraftServer.getCommandManager();
+        CommandManager commandManager = MinecraftServer.getCommandManager();
         commandManager.register(new PerformanceCommand(this.eventNode));
-        commandManager.register(new BadgeCommand());
+        GrpcStubCollection.getBadgeManagerService()
+                .ifPresent(badgeService -> commandManager.register(new BadgeCommand(playerService, playerResolver, badgeService)));
 
         return true;
     }

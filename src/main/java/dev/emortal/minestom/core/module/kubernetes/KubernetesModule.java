@@ -5,8 +5,9 @@ import dev.agones.sdk.SDKGrpc;
 import dev.emortal.api.agonessdk.AgonesUtils;
 import dev.emortal.api.agonessdk.IgnoredStreamObserver;
 import dev.emortal.api.modules.Module;
-import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.annotation.ModuleData;
+import dev.emortal.api.modules.env.ModuleEnvironment;
+import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.Environment;
 import dev.emortal.minestom.core.module.kubernetes.command.agones.AgonesCommand;
 import dev.emortal.minestom.core.module.kubernetes.command.currentserver.CurrentServerCommand;
@@ -24,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-@ModuleData(name = "kubernetes", required = true)
+@ModuleData(name = "kubernetes")
 public final class KubernetesModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(KubernetesModule.class);
 
@@ -68,7 +69,8 @@ public final class KubernetesModule extends Module {
         }
 
         // player tracker
-        MinecraftServer.getCommandManager().register(new CurrentServerCommand());
+        GrpcStubCollection.getPlayerTrackerService()
+                .ifPresent(playerTracker -> MinecraftServer.getCommandManager().register(new CurrentServerCommand(playerTracker)));
 
         // agones
         if (AGONES_SDK_ENABLED) this.loadAgones();
@@ -81,16 +83,16 @@ public final class KubernetesModule extends Module {
 
         MinecraftServer.getCommandManager().register(new AgonesCommand(this.sdk));
 
-        for (var label : this.additionalLabels) {
+        for (AgonesSDKProto.KeyValue label : this.additionalLabels) {
             this.sdk.setLabel(label, new IgnoredStreamObserver<>());
             LOGGER.info("Set Agones label {} to {}", label.getKey(), label.getValue());
         }
 
-        var protocolVersion = AgonesSDKProto.KeyValue.newBuilder()
+        AgonesSDKProto.KeyValue protocolVersion = AgonesSDKProto.KeyValue.newBuilder()
                 .setKey("emc-protocol-version")
                 .setValue(String.valueOf(MinecraftServer.PROTOCOL_VERSION))
                 .build();
-        var versionName = AgonesSDKProto.KeyValue.newBuilder()
+        AgonesSDKProto.KeyValue versionName = AgonesSDKProto.KeyValue.newBuilder()
                 .setKey("emc-version-name")
                 .setValue(MinecraftServer.VERSION_NAME)
                 .build();
@@ -108,6 +110,7 @@ public final class KubernetesModule extends Module {
 
     private void unloadAgones() {
         LOGGER.info("Marking server as shutdown for Agones");
+
         AgonesUtils.shutdownHealthTask();
         this.sdk.shutdown(AgonesSDKProto.Empty.getDefaultInstance(), new IgnoredStreamObserver<>());
     }

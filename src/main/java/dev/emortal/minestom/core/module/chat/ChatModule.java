@@ -3,24 +3,21 @@ package dev.emortal.minestom.core.module.chat;
 import dev.emortal.api.message.common.PlayerChatMessageMessage;
 import dev.emortal.api.message.messagehandler.ChatMessageCreatedMessage;
 import dev.emortal.api.model.messagehandler.ChatMessage;
-import dev.emortal.api.modules.ModuleData;
-import dev.emortal.api.modules.ModuleEnvironment;
+import dev.emortal.api.modules.annotation.Dependency;
+import dev.emortal.api.modules.annotation.ModuleData;
+import dev.emortal.api.modules.env.ModuleEnvironment;
 import dev.emortal.api.utils.kafka.FriendlyKafkaProducer;
 import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
-import dev.emortal.minestom.core.module.permissions.PermissionModule;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.adventure.audience.Audiences;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerChatEvent;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-@ModuleData(name = "chat", softDependencies = {PermissionModule.class, MessagingModule.class}, required = false)
+@ModuleData(name = "chat", dependencies = {@Dependency(name = "messaging")})
 public final class ChatModule extends MinestomModule {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ChatModule.class);
 
     public ChatModule(@NotNull ModuleEnvironment environment) {
         super(environment);
@@ -28,11 +25,7 @@ public final class ChatModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        var messagingModule = this.getModule(MessagingModule.class);
-        if (messagingModule == null || messagingModule.getKafkaProducer() == null) {
-            LOGGER.warn("Not enabling ChatModule, MessagingModule or KafkaProducer is null");
-            return false;
-        }
+        MessagingModule messagingModule = this.getModule(MessagingModule.class);
 
         messagingModule.addListener(ChatMessageCreatedMessage.class, messageEvent -> {
             ChatMessage message = messageEvent.getMessage();

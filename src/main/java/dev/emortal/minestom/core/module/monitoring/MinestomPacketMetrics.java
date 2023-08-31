@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class MinestomPacketMetrics implements MeterBinder {
 
-    private final EventNode<Event> eventNode;
+    private final @NotNull EventNode<Event> eventNode;
 
     public MinestomPacketMetrics(@NotNull EventNode<Event> eventNode) {
         this.eventNode = eventNode;
@@ -19,12 +19,12 @@ public final class MinestomPacketMetrics implements MeterBinder {
 
     @Override
     public void bindTo(@NotNull MeterRegistry registry) {
-        var packetsSent = Counter.builder("minestom.packets")
+        Counter packetsSent = Counter.builder("minestom.packets")
                 .tag("direction", "out")
                 .description("The amount of packets sent by the server")
                 .register(registry);
 
-        var packetsReceived = Counter.builder("minestom.packets")
+        Counter packetsReceived = Counter.builder("minestom.packets")
                 .tag("direction", "in")
                 .description("The amount of packets received by the server")
                 .register(registry);

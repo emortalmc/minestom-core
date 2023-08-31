@@ -9,7 +9,7 @@ public final class CommonMatchmakerError {
     public static final String QUEUE_ERR_UNKNOWN = "<red>An unknown error occurred while trying to queue you for <mode>. Please try again later.</red>";
     public static final Component QUEUE_ERR_ALREADY_IN_QUEUE = Component.text("You are already queued!", NamedTextColor.RED);
     public static final String QUEUE_ERR_PARTY_TOO_LARGE = "<red>Your party is too large for <mode>. The maximum party size is <max> players.</red>";
-    public static final String PLAYER_PERMISSION_DENIED = "<red>You do not have permission to queue your party.</red>";
+    public static final Component PLAYER_PERMISSION_DENIED = Component.text("You do not have permission to queue your party", NamedTextColor.RED);
 
     // Dequeue
     public static final Component DEQUEUE_SUCCESS = Component.text("You have been dequeued", NamedTextColor.GREEN);

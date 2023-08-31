@@ -23,21 +23,20 @@ dependencies {
     implementation("io.pyroscope:agent:0.11.5")
 
     // Logger
-    implementation("ch.qos.logback:logback-classic:1.4.8")
+    implementation("ch.qos.logback:logback-classic:1.4.11")
 
     // APIs
-    api("dev.emortal.api:module-system:16353c8")
+    api("dev.emortal.api:module-system:f3e496c")
     api("dev.emortal.api:agones-sdk:1.0.7")
-    api("dev.emortal.api:common-proto-sdk:da7a48c")
-    api("dev.emortal.api:live-config-parser:a9fc46f")
-    api("dev.emortal.api:kurushimi-sdk:82c14c3")
+    api("dev.emortal.api:common-proto-sdk:4f00807")
+    api("dev.emortal.api:live-config-parser:9c8edf7")
 
-    api("io.kubernetes:client-java:18.0.0")
+    api("io.kubernetes:client-java:18.0.1")
 
-    api("io.micrometer:micrometer-registry-prometheus:1.11.1")
+    api("io.micrometer:micrometer-registry-prometheus:1.11.3")
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.3")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.3")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
 }
 
 java {

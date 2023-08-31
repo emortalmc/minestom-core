@@ -17,17 +17,25 @@ public final class AgonesCommand extends Command {
 
         var sdkSubs = new SdkSubCommands(sdk);
 
-        var get = new ArgumentLiteral("get");
+
+        // /magones get gameserver
+        this.addSyntax(sdkSubs::executeGetGameServer, new ArgumentLiteral("get"), new ArgumentLiteral("gameserver"));
+        // /magones reserve <duration>
+        this.addSyntax(sdkSubs::executeReserve, new ArgumentLiteral("reserve"), new ArgumentTime("duration"));
+        // /magones allocate
+        this.addSyntax(sdkSubs::executeAllocate, new ArgumentLiteral("allocate"));
+
         var set = new ArgumentLiteral("set");
         var key = new ArgumentString("key");
-        var metaValue = new ArgumentString("metaValue");
+        var value = new ArgumentString("value");
+        // /magones set annotation <key> <value>
+        this.addSyntax(sdkSubs::executeSetAnnotation, new ArgumentLiteral("set"), new ArgumentLiteral("annotation"), key, value);
+        // /magones set label <key> <value>
+        this.addSyntax(sdkSubs::executeSetLabel, new ArgumentLiteral("set"), new ArgumentLiteral("label"), key, value);
 
-        this.addSyntax(sdkSubs::executeGetGameServer, get, new ArgumentLiteral("gameserver"));
-        this.addSyntax(sdkSubs::executeReserve, new ArgumentLiteral("reserve"), new ArgumentTime("duration"));
-        this.addSyntax(sdkSubs::executeAllocate, new ArgumentLiteral("allocate"));
-        this.addSyntax(sdkSubs::executeSetAnnotation, set, new ArgumentLiteral("annotation"), key, metaValue);
-        this.addSyntax(sdkSubs::executeSetLabel, set, new ArgumentLiteral("label"), key, metaValue);
+        // /magones shutdown
         this.addSyntax(sdkSubs::executeShutdown, new ArgumentLiteral("shutdown"));
+        // /magones watch gameserver
         this.addSyntax(sdkSubs::executeWatchGameserver, new ArgumentLiteral("watch"), new ArgumentLiteral("gameserver"));
     }
 

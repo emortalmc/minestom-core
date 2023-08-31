@@ -1,8 +1,8 @@
 package dev.emortal.minestom.core.utils.command.argument;
 
-import dev.emortal.api.grpc.badge.BadgeManagerGrpc;
-import dev.emortal.api.grpc.badge.BadgeManagerProto;
 import dev.emortal.api.model.badge.Badge;
+import dev.emortal.api.service.badges.BadgeService;
+import io.grpc.StatusRuntimeException;
 import net.kyori.adventure.text.Component;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.CommandContext;
@@ -15,23 +15,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 public final class ArgumentBadge {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArgumentBadge.class);
 
-    private final BadgeManagerGrpc.BadgeManagerFutureStub badgeManager;
-
-    private final String id;
+    private final @NotNull BadgeService badgeService;
+    private final @NotNull String id;
     private final boolean onlyOwned;
 
-    public ArgumentBadge(@NotNull BadgeManagerGrpc.BadgeManagerFutureStub badgeManager, @NotNull String id, boolean onlyOwned) {
-        this.badgeManager = badgeManager;
+    public ArgumentBadge(@NotNull BadgeService badgeService, @NotNull String id, boolean onlyOwned) {
+        this.badgeService = badgeService;
         this.id = id;
         this.onlyOwned = onlyOwned;
     }
 
-    public static @NotNull ArgumentWord create(@NotNull BadgeManagerGrpc.BadgeManagerFutureStub badgeManager, @NotNull String id, boolean onlyOwned) {
+    public static @NotNull ArgumentWord create(@NotNull BadgeService badgeManager, @NotNull String id, boolean onlyOwned) {
         var handlerArgument = new ArgumentBadge(badgeManager, id, onlyOwned);
         var createdArgument = new ArgumentWord(id);
 
@@ -52,28 +50,34 @@ public final class ArgumentBadge {
         }
 
         if (this.onlyOwned) {
-            handleOwnedBadgesSuggestion((Player) sender, input, suggestion);
+            this.handleOwnedBadgesSuggestion((Player) sender, input, suggestion);
         } else {
-            handleDefaultSuggestion(input, suggestion);
+            this.handleDefaultSuggestion(input, suggestion);
         }
     }
 
     private void handleDefaultSuggestion(@NotNull String input, @NotNull Suggestion suggestion) {
+        List<Badge> badges;
         try {
-            var response = this.badgeManager.getBadges(BadgeManagerProto.GetBadgesRequest.getDefaultInstance()).get();
-            addBadgeSuggestions(suggestion, response.getBadgesList(), input);
-        } catch (InterruptedException | ExecutionException exception) {
+            badges = this.badgeService.getAllBadges();
+        } catch (StatusRuntimeException exception) {
             LOGGER.error("Failed to get badges", exception);
+            return;
         }
+
+        this.addBadgeSuggestions(suggestion, badges, input);
     }
 
     private void handleOwnedBadgesSuggestion(@NotNull Player sender, @NotNull String input, @NotNull Suggestion suggestion) {
+        List<Badge> badges;
         try {
-            var request = BadgeManagerProto.GetPlayerBadgesRequest.newBuilder().setPlayerId(sender.getUuid().toString()).build();
-            addBadgeSuggestions(suggestion, this.badgeManager.getPlayerBadges(request).get().getBadgesList(), input);
-        } catch (InterruptedException | ExecutionException exception) {
-            LOGGER.error("Failed to get badges", exception);
+            badges = this.badgeService.getPlayerBadges(sender.getUuid()).getBadgesList();
+        } catch (StatusRuntimeException exception) {
+            LOGGER.error("Failed to get badges for '{}'", sender.getUsername(), exception);
+            return;
         }
+
+        this.addBadgeSuggestions(suggestion, badges, input);
     }
 
     private void addBadgeSuggestions(@NotNull Suggestion suggestion, @NotNull List<Badge> badges, @NotNull String filter) {

@@ -1,8 +1,8 @@
 package dev.emortal.minestom.core.module.matchmaker.session;
 
-import dev.emortal.api.kurushimi.PendingMatch;
-import dev.emortal.api.kurushimi.Ticket;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
+import dev.emortal.api.model.matchmaker.PendingMatch;
+import dev.emortal.api.model.matchmaker.Ticket;
 import dev.emortal.api.utils.ProtoTimestampConverter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -26,8 +26,8 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     private static final String MATCH_FOUND_MESSAGE = "<green><mode> match found! Teleporting in <time> seconds...</green>";
     private static final String MATCH_CANCELLED_MESSAGE = "<mode> match cancelled.";
 
-    private final ScheduledFuture<?> notificationTask;
-    private final GameModeConfig gameMode;
+    private final @NotNull ScheduledFuture<?> notificationTask;
+    private final @NotNull GameModeConfig gameMode;
 
     public DefaultMatchmakingSessionImpl(@NotNull Player player, @NotNull GameModeConfig gameMode, @NotNull Ticket ticket) {
         super(player, ticket);
@@ -54,7 +54,7 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
 
         var modeName = Placeholder.unparsed("mode", this.gameMode.friendlyName());
         var time = Placeholder.unparsed("time", String.valueOf(secondsToTeleport));
-        player.sendMessage(MINI_MESSAGE.deserialize(MATCH_FOUND_MESSAGE, modeName, time));
+        this.player.sendMessage(MINI_MESSAGE.deserialize(MATCH_FOUND_MESSAGE, modeName, time));
     }
 
     @Override
@@ -77,8 +77,6 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
         switch (reason) {
             case MANUAL_DEQUEUE -> this.player.sendMessage(Component.text("You have been removed from the queue.", NamedTextColor.RED));
             case GAME_MODE_DELETED -> this.player.sendMessage(Component.text("The game mode you were in queue for has been disabled.", NamedTextColor.RED));
-            case MATCH_CREATED, UNKNOWN -> {
-            } // do nothing
         }
     }
 
