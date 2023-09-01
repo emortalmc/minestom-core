@@ -1,7 +1,8 @@
 package dev.emortal.minestom.core.module.liveconfig;
 
+import dev.emortal.api.liveconfigparser.configs.ConfigProvider;
 import dev.emortal.api.liveconfigparser.configs.LiveConfigCollection;
-import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeCollection;
+import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
 import dev.emortal.api.modules.Module;
 import dev.emortal.api.modules.annotation.Dependency;
 import dev.emortal.api.modules.annotation.ModuleData;
@@ -25,7 +26,7 @@ public final class LiveConfigModule extends Module {
         super(environment);
     }
 
-    public @Nullable GameModeCollection getGameModes() {
+    public @Nullable ConfigProvider<GameModeConfig> getGameModes() {
         if (this.configCollection == null) return null;
         return this.configCollection.gameModes();
     }
@@ -39,7 +40,7 @@ public final class LiveConfigModule extends Module {
         ApiClient apiClient = kubernetesModule != null ? kubernetesModule.getApiClient() : null;
 
         try {
-            this.configCollection = new LiveConfigCollection(apiClient);
+            this.configCollection = LiveConfigCollection.create(apiClient);
             return true;
         } catch (IOException exception) {
             LOGGER.error("Failed to load live configs", exception);
@@ -49,6 +50,8 @@ public final class LiveConfigModule extends Module {
 
     @Override
     public void onUnload() {
+        if (this.configCollection == null) return;
+
         try {
             this.configCollection.close();
         } catch (IOException exception) {

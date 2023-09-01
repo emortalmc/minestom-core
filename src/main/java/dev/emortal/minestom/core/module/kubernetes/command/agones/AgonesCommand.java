@@ -17,7 +17,6 @@ public final class AgonesCommand extends Command {
 
         var sdkSubs = new SdkSubCommands(sdk);
 
-
         // /magones get gameserver
         this.addSyntax(sdkSubs::executeGetGameServer, new ArgumentLiteral("get"), new ArgumentLiteral("gameserver"));
         // /magones reserve <duration>

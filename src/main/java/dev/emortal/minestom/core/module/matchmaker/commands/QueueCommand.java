@@ -1,6 +1,6 @@
 package dev.emortal.minestom.core.module.matchmaker.commands;
 
-import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeCollection;
+import dev.emortal.api.liveconfigparser.configs.ConfigProvider;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
 import dev.emortal.api.service.matchmaker.MatchmakerService;
 import dev.emortal.api.service.matchmaker.QueuePlayerResult;
@@ -29,12 +29,12 @@ public final class QueueCommand extends Command {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     private final MatchmakerService matchmaker;
-    private final GameModeCollection gameModeCollection;
+    private final ConfigProvider<GameModeConfig> gameModes;
 
-    public QueueCommand(@NotNull MatchmakerService matchmaker, @NotNull GameModeCollection gameModeCollection) {
+    public QueueCommand(@NotNull MatchmakerService matchmaker, @NotNull ConfigProvider<GameModeConfig> gameModes) {
         super("play", "queue");
         this.matchmaker = matchmaker;
-        this.gameModeCollection = gameModeCollection;
+        this.gameModes = gameModes;
 
         this.setCondition(Conditions::playerOnly);
 
@@ -42,7 +42,7 @@ public final class QueueCommand extends Command {
         modeArg.setSuggestionCallback((sender, context, suggestion) -> {
             String inputLower = context.getRaw("mode").toLowerCase();
 
-            Stream<String> configNames = this.gameModeCollection.getAllConfigs().stream()
+            Stream<String> configNames = this.gameModes.allConfigs().stream()
                     .filter(GameModeConfig::enabled)
                     .map(GameModeConfig::friendlyName);
 
@@ -61,7 +61,7 @@ public final class QueueCommand extends Command {
         String[] modeArg = context.get("mode");
         String modeName = String.join(" ", modeArg);
 
-        GameModeConfig mode = this.gameModeCollection.getAllConfigs().stream()
+        GameModeConfig mode = this.gameModes.allConfigs().stream()
                 .filter(GameModeConfig::enabled)
                 .filter(config -> config.friendlyName().equalsIgnoreCase(modeName))
                 .findFirst()

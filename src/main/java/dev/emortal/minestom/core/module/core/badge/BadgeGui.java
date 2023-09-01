@@ -1,13 +1,8 @@
 package dev.emortal.minestom.core.module.core.badge;
 
-import com.google.common.util.concurrent.Futures;
-import dev.emortal.api.grpc.badge.BadgeManagerGrpc;
 import dev.emortal.api.grpc.badge.BadgeManagerProto;
 import dev.emortal.api.model.badge.Badge;
 import dev.emortal.api.service.badges.BadgeService;
-import dev.emortal.api.service.badges.SetActiveBadgeResult;
-import dev.emortal.api.utils.GrpcStubCollection;
-import dev.emortal.api.utils.callback.FunctionalFutureCallback;
 import io.grpc.StatusRuntimeException;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -30,8 +25,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 public final class BadgeGui {

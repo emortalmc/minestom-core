@@ -1,6 +1,8 @@
 package dev.emortal.minestom.core.module.matchmaker;
 
+import dev.emortal.api.liveconfigparser.configs.ConfigProvider;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeCollection;
+import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
 import dev.emortal.api.modules.annotation.Dependency;
 import dev.emortal.api.modules.annotation.ModuleData;
 import dev.emortal.api.modules.env.ModuleEnvironment;
@@ -46,7 +48,7 @@ public final class MatchmakerModule extends MinestomModule {
             return false;
         }
 
-        GameModeCollection gameModes = liveConfig.getGameModes();
+        ConfigProvider<GameModeConfig> gameModes = liveConfig.getGameModes();
         if (gameModes == null) {
             LOGGER.error("Game modes unavailable. Matchmaking features will not work.");
             return false;

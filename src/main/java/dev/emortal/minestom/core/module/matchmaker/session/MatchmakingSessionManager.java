@@ -1,7 +1,7 @@
 package dev.emortal.minestom.core.module.matchmaker.session;
 
 import dev.emortal.api.grpc.matchmaker.MatchmakerProto.GetPlayerQueueInfoResponse;
-import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeCollection;
+import dev.emortal.api.liveconfigparser.configs.ConfigProvider;
 import dev.emortal.api.liveconfigparser.configs.gamemode.GameModeConfig;
 import dev.emortal.api.message.matchmaker.MatchCreatedMessage;
 import dev.emortal.api.message.matchmaker.PendingMatchCreatedMessage;
@@ -42,17 +42,17 @@ public final class MatchmakingSessionManager {
 
     private final @NotNull MatchmakerService matchmaker;
     private final @NotNull MatchmakingSession.Creator sessionCreator;
-    private final @NotNull GameModeCollection gameModeCollection;
+    private final @NotNull ConfigProvider<GameModeConfig> gameModes;
 
     private final Map<UUID, MatchmakingSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, Ticket> ticketCache = new ConcurrentHashMap<>();
 
     // TODO: note that tickets technically memory leak but it's so small and cleaned up when the ticket is deleted.
     public MatchmakingSessionManager(@NotNull EventNode<Event> eventNode, @NotNull MatchmakerService matchmaker, @NotNull MessagingModule messaging,
-                                     @NotNull GameModeCollection gameModeCollection, @NotNull MatchmakingSession.Creator sessionCreator) {
+                                     @NotNull ConfigProvider<GameModeConfig> gameModes, @NotNull MatchmakingSession.Creator sessionCreator) {
         this.matchmaker = matchmaker;
         this.sessionCreator = sessionCreator;
-        this.gameModeCollection = gameModeCollection;
+        this.gameModes = gameModes;
 
         eventNode.addListener(PlayerLoginEvent.class, this::handlePlayerLogin);
 
@@ -103,7 +103,7 @@ public final class MatchmakingSessionManager {
             Player player = MinecraftServer.getConnectionManager().getPlayer(uuid);
             if (player == null) continue;
 
-            GameModeConfig gameMode = this.gameModeCollection.getConfig(ticket.getGameModeId());
+            GameModeConfig gameMode = this.gameModes.getConfig(ticket.getGameModeId());
             MatchmakingSession session = this.sessionCreator.create(player, gameMode, ticket);
             this.sessions.put(uuid, session);
             shouldCache = true;
@@ -132,7 +132,7 @@ public final class MatchmakingSessionManager {
 
     private void onTicketUpdated(@NotNull Ticket newTicket) {
         Ticket oldTicket = this.ticketCache.get(newTicket.getId());
-        GameModeConfig gameMode = this.gameModeCollection.getConfig(newTicket.getGameModeId());
+        GameModeConfig gameMode = this.gameModes.getConfig(newTicket.getGameModeId());
 
         // Perform adding operations and update existing MatchmakingSessions
         for (String playerId : newTicket.getPlayerIdsList()) {
@@ -210,8 +210,13 @@ public final class MatchmakingSessionManager {
             return;
         }
 
+        if (queueInfo == null) {
+            LOGGER.error("Failed to get queue info for '{}'", player.getUsername());
+            return;
+        }
+
         Ticket ticket = queueInfo.getTicket();
-        GameModeConfig mode = this.gameModeCollection.getConfig(ticket.getGameModeId());
+        GameModeConfig mode = this.gameModes.getConfig(ticket.getGameModeId());
 
         var modeName = Placeholder.unparsed("mode", mode == null ? ticket.getGameModeId() : mode.friendlyName());
         if (mode == null) {

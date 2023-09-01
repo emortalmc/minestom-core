@@ -2,7 +2,6 @@ package dev.emortal.minestom.core.module.core;
 
 import dev.emortal.api.modules.annotation.ModuleData;
 import dev.emortal.api.modules.env.ModuleEnvironment;
-import dev.emortal.api.service.badges.BadgeService;
 import dev.emortal.api.service.mcplayer.McPlayerService;
 import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.module.MinestomModule;

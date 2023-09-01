@@ -1,6 +1,8 @@
 plugins {
     `java-library`
     `maven-publish`
+
+    jacoco
 }
 
 group = "dev.emortal.minestom"
@@ -8,6 +10,7 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    mavenLocal()
 
     maven("https://repo.emortal.dev/snapshots")
     maven("https://repo.emortal.dev/releases")
@@ -29,7 +32,7 @@ dependencies {
     api("dev.emortal.api:module-system:f3e496c")
     api("dev.emortal.api:agones-sdk:1.0.7")
     api("dev.emortal.api:common-proto-sdk:4f00807")
-    api("dev.emortal.api:live-config-parser:9c8edf7")
+    api("dev.emortal.api:live-config-parser:7c88aa1")
 
     api("io.kubernetes:client-java:18.0.1")
 
@@ -45,11 +48,19 @@ java {
     }
 }
 
-tasks.compileJava {
-    options.compilerArgs.addAll(listOf(
-            "--release", "20",
-            "--enable-preview"
-    ))
+tasks {
+    compileJava {
+        options.compilerArgs.addAll(listOf(
+                "--release", "20",
+                "--enable-preview"
+        ))
+    }
+    test {
+        useJUnitPlatform()
+    }
+    jacocoTestReport {
+        dependsOn(test)
+    }
 }
 
 publishing {
