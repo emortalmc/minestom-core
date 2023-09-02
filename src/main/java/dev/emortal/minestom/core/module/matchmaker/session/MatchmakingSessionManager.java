@@ -210,10 +210,8 @@ public final class MatchmakingSessionManager {
             return;
         }
 
-        if (queueInfo == null) {
-            LOGGER.error("Failed to get queue info for '{}'", player.getUsername());
-            return;
-        }
+        // Queue info is not required. A player might not be in a queue.
+        if (queueInfo == null) return;
 
         Ticket ticket = queueInfo.getTicket();
         GameModeConfig mode = this.gameModes.getConfig(ticket.getGameModeId());
