@@ -17,9 +17,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public final class MinestomServer {
@@ -62,12 +59,7 @@ public final class MinestomServer {
 
         LOGGER.info("Starting server at {}:{}", builder.address, builder.port);
 
-        List<LoadableModule> modules = new ArrayList<>();
-        for (Map.Entry<Class<? extends Module>, LoadableModule.Creator> entry : builder.modules.entrySet()) {
-            modules.add(new LoadableModule(entry.getKey(), entry.getValue()));
-        }
-
-        this.moduleManager = ModuleManager.builder().build();
+        this.moduleManager = builder.moduleManagerBuilder.build();
         MinecraftServer.getSchedulerManager().buildShutdownTask(this.moduleManager::onUnload);
     }
 
@@ -99,7 +91,7 @@ public final class MinestomServer {
         private int port = Integer.parseInt(getValue("minestom.port", DEFAULT_PORT));
         private boolean mojangAuth = false;
 
-        private final Map<Class<? extends Module>, LoadableModule.Creator> modules = new HashMap<>();
+        private final ModuleManager.Builder moduleManagerBuilder = ModuleManager.builder();
 
         private Builder() {
             // we do this because env variables in dockerfiles break k8s env variables?
@@ -137,7 +129,7 @@ public final class MinestomServer {
         }
 
         public @NotNull Builder module(@NotNull Class<? extends Module> clazz, @NotNull LoadableModule.Creator moduleCreator) {
-            this.modules.put(clazz, moduleCreator);
+            this.moduleManagerBuilder.module(clazz, moduleCreator);
             return this;
         }
 
