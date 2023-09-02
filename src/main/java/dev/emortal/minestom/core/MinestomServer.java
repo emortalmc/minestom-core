@@ -68,7 +68,6 @@ public final class MinestomServer {
         }
 
         this.moduleManager = ModuleManager.builder().build();
-        this.moduleManager.loadModules(modules);
         MinecraftServer.getSchedulerManager().buildShutdownTask(this.moduleManager::onUnload);
     }
 
