@@ -57,8 +57,6 @@ public final class MinestomServer {
             MojangAuth.init();
         }
 
-        LOGGER.info("Starting server at {}:{}", builder.address, builder.port);
-
         this.moduleManager = builder.moduleManagerBuilder.build();
         MinecraftServer.getSchedulerManager().buildShutdownTask(this.moduleManager::onUnload);
     }
@@ -77,6 +75,7 @@ public final class MinestomServer {
     }
 
     public void start() {
+        LOGGER.info("Starting server at {}:{}", this.address, this.port);
         this.server.start(this.address, this.port);
         this.moduleManager.onReady();
     }
