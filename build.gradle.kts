@@ -27,6 +27,7 @@ dependencies {
 
     // Logger
     implementation("ch.qos.logback:logback-classic:1.4.11")
+    implementation("net.logstash.logback:logstash-logback-encoder:7.3")
 
     // APIs
     api("dev.emortal.api:module-system:f3e496c")
