@@ -39,7 +39,7 @@ public final class ArgumentMcPlayer {
         this.filterMethod = filterMethod;
     }
 
-    public static @NotNull Argument<Supplier<LocalMcPlayer>> create(@NotNull String id, @NotNull McPlayerService playerService,
+    public static @NotNull Argument<Supplier<LocalMcPlayer>> create(@NotNull String id, @Nullable McPlayerService playerService,
                                                                     @Nullable PlayerResolver playerResolver, @Nullable FilterMethod filterMethod) {
         var argument = new ArgumentMcPlayer(id, playerService, playerResolver, filterMethod);
         return new ArgumentWord(id).map(argument::mapInput).setSuggestionCallback(argument::suggestionCallback);
