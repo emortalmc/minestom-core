@@ -21,7 +21,7 @@ repositories {
 
 dependencies {
     // Minestom
-    api("dev.hollowcube:minestom-ce:e9d0098418")
+    api("dev.hollowcube:minestom-ce:0e8151150a")
     api("net.kyori:adventure-text-minimessage:4.14.0")
     implementation("io.pyroscope:agent:0.11.5")
 

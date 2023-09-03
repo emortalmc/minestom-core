@@ -7,12 +7,14 @@ import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.Argument;
 import net.minestom.server.command.builder.arguments.ArgumentWord;
 import net.minestom.server.command.builder.arguments.minecraft.ArgumentEntity;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.utils.entity.EntityFinder;
 
 public final class EntrypointTest {
@@ -27,9 +29,13 @@ public final class EntrypointTest {
                 .buildAndStart();
 
         Instance instance = MinecraftServer.getInstanceManager().createInstanceContainer();
+        instance.setGenerator(unit -> unit.modifier().fillHeight(-20, 0, Block.GRASS_BLOCK));
 
         GlobalEventHandler eventHandler = MinecraftServer.getGlobalEventHandler();
-        eventHandler.addListener(PlayerLoginEvent.class, event -> event.setSpawningInstance(instance));
+        eventHandler.addListener(PlayerLoginEvent.class, event -> {
+            event.setSpawningInstance(instance);
+            event.getPlayer().setRespawnPoint(new Pos(0, 0, 0));
+        });
         eventHandler.addListener(PlayerSpawnEvent.class, event -> {
             final Player player = event.getPlayer();
             player.setGameMode(GameMode.CREATIVE);
