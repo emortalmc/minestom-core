@@ -23,11 +23,7 @@ public final class MinestomServer {
     private static final Logger LOGGER;
 
     static {
-        // I'd rather have this all done when this class is loaded rather than when it is constructed, which could be after other module classes
-        // that need the logger are loaded
-        String loggerConfigFile = Environment.isProduction() ? "logback-prod.xml" : "logback-dev.xml";
-        System.setProperty("logback.configurationFile", loggerConfigFile);
-
+        LoggingInitializer.initialize();
         LOGGER = LoggerFactory.getLogger(MinestomServer.class);
     }
 
