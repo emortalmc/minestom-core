@@ -11,10 +11,11 @@ public final class RollingAverage {
 
     private final @NotNull Queue<BigDecimal> samples;
     private final int size;
+
     private @NotNull BigDecimal sum = BigDecimal.ZERO;
 
     public RollingAverage(int size) {
-        this.samples = new ArrayDeque<>(size);
+        this.samples = new ArrayDeque<>(size + 1);
         this.size = size;
     }
 
