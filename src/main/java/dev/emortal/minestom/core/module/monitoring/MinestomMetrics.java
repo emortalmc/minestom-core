@@ -67,8 +67,8 @@ public final class MinestomMetrics implements MeterBinder {
                 entityRows.add(MultiGauge.Row.of(tags, instance.getEntities().size()));
             }
 
-            chunkGauge.register(chunkRows);
-            entityGauge.register(entityRows);
+            chunkGauge.register(chunkRows, true);
+            entityGauge.register(entityRows, true);
         }).repeat(5, ChronoUnit.SECONDS).delay(TaskSchedule.nextTick()).schedule();
 
         Timer tickTimer = Timer.builder("minestom.tick.time")
