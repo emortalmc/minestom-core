@@ -6,4 +6,8 @@
     <root level="INFO">
         <appender-ref ref="console"/>
     </root>
+
+    <logger name="io.kubernetes.client.informer.cache.ReflectorRunnable" level="WARN" additivity="false">
+        <appender-ref ref="console"/>
+    </logger>
 </configuration>
