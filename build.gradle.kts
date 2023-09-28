@@ -10,7 +10,6 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-    mavenLocal()
 
     maven("https://repo.emortal.dev/snapshots")
     maven("https://repo.emortal.dev/releases")
@@ -23,21 +22,21 @@ dependencies {
     // Minestom
     api("dev.hollowcube:minestom-ce:0e8151150a")
     api("net.kyori:adventure-text-minimessage:4.14.0")
-    implementation("io.pyroscope:agent:0.11.5")
+    implementation("io.pyroscope:agent:0.12.0")
 
     // Logger
     implementation("ch.qos.logback:logback-classic:1.4.11")
-    implementation("net.logstash.logback:logstash-logback-encoder:7.3")
+    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
 
     // APIs
-    api("dev.emortal.api:module-system:f3e496c")
+    api("dev.emortal.api:module-system:266a490")
     api("dev.emortal.api:agones-sdk:1.0.7")
     api("dev.emortal.api:common-proto-sdk:a41fe67")
     api("dev.emortal.api:live-config-parser:03b46ea")
 
     api("io.kubernetes:client-java:18.0.1")
 
-    api("io.micrometer:micrometer-registry-prometheus:1.11.3")
+    api("io.micrometer:micrometer-registry-prometheus:1.11.4")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
@@ -45,17 +44,11 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(20))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
 tasks {
-    compileJava {
-        options.compilerArgs.addAll(listOf(
-                "--release", "20",
-                "--enable-preview"
-        ))
-    }
     test {
         useJUnitPlatform()
     }
