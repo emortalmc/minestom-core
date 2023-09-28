@@ -20,19 +20,19 @@ repositories {
 
 dependencies {
     // Minestom
-    api("dev.hollowcube:minestom-ce:0e8151150a")
+    api("dev.hollowcube:minestom-ce:30699ec3fd")
     api("net.kyori:adventure-text-minimessage:4.14.0")
-    implementation("io.pyroscope:agent:0.12.0")
+    implementation("io.pyroscope:agent:0.12.1")
 
     // Logger
     implementation("ch.qos.logback:logback-classic:1.4.11")
     implementation("net.logstash.logback:logstash-logback-encoder:7.4")
 
     // APIs
-    api("dev.emortal.api:module-system:266a490")
+    api("dev.emortal.api:module-system:1.0.0")
     api("dev.emortal.api:agones-sdk:1.0.7")
-    api("dev.emortal.api:common-proto-sdk:a41fe67")
-    api("dev.emortal.api:live-config-parser:03b46ea")
+    api("dev.emortal.api:common-proto-sdk:1a3a1bf")
+    api("dev.emortal.api:live-config-parser:e1f5d21")
 
     api("io.kubernetes:client-java:18.0.1")
 
