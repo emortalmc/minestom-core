@@ -143,8 +143,8 @@ public final class PermissionCache {
     }
 
     void removeRole(@NotNull String id) {
-        for (User(UUID userId, Set<String> roleIds) : this.userCache.values()) {
-            if (roleIds.contains(id)) this.removeRoleFromUser(userId, id);
+        for (User user : this.userCache.values()) {
+            if (user.roleIds().contains(id)) this.removeRoleFromUser(user.id(), id);
         }
 
         this.roleCache.remove(id);
