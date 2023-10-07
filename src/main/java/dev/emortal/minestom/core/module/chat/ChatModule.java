@@ -9,8 +9,10 @@ import dev.emortal.api.modules.env.ModuleEnvironment;
 import dev.emortal.api.utils.kafka.FriendlyKafkaProducer;
 import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.minestom.server.adventure.audience.Audiences;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerChatEvent;
@@ -29,7 +31,13 @@ public final class ChatModule extends MinestomModule {
 
         messagingModule.addListener(ChatMessageCreatedMessage.class, messageEvent -> {
             ChatMessage message = messageEvent.getMessage();
-            var content = Placeholder.unparsed("content", message.getMessageContent());
+
+            TagResolver content;
+            if (message.getParseMessageContent())
+                content = Placeholder.parsed("content", message.getMessage());
+            else
+                content = Placeholder.unparsed("content", message.getMessage());
+
             Audiences.players().sendMessage(MiniMessage.miniMessage().deserialize(message.getMessage(), content));
         });
 
