@@ -34,9 +34,9 @@ public final class ChatModule extends MinestomModule {
 
             TagResolver content;
             if (message.getParseMessageContent())
-                content = Placeholder.parsed("content", message.getMessage());
+                content = Placeholder.parsed("content", message.getMessageContent());
             else
-                content = Placeholder.unparsed("content", message.getMessage());
+                content = Placeholder.unparsed("content", message.getMessageContent());
 
             Audiences.players().sendMessage(MiniMessage.miniMessage().deserialize(message.getMessage(), content));
         });
