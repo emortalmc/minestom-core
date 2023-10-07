@@ -9,6 +9,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.entity.Player;
+import net.minestom.server.timer.TaskSchedule;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
@@ -16,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor();
@@ -23,7 +25,9 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     // TODO let's have a 3, 2, 1 countdown before they get teleported.
-    private static final String MATCH_FOUND_MESSAGE = "<green><mode> match found! Teleporting in <time> seconds...</green>";
+    private static final String MATCH_FOUND_MESSAGE = "<green><mode> match found!";
+    private static final String TELEPORTING_IN_MESSAGE = "<green>Teleporting in <time> seconds...</green>";
+    private static final Component TELEPORTING_MESSAGE = Component.text("Teleporting...", NamedTextColor.GREEN);
     private static final String MATCH_CANCELLED_MESSAGE = "<mode> match cancelled.";
 
     private final @NotNull ScheduledFuture<?> notificationTask;
@@ -49,12 +53,8 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
 
     @Override
     public void onPendingMatchCreate(@NotNull PendingMatch match) {
-        Instant teleportTime = ProtoTimestampConverter.fromProto(match.getTeleportTime());
-        int secondsToTeleport = (int) (teleportTime.getEpochSecond() - Instant.now().getEpochSecond());
-
-        var modeName = Placeholder.unparsed("mode", this.gameMode.friendlyName());
-        var time = Placeholder.unparsed("time", String.valueOf(secondsToTeleport));
-        this.player.sendMessage(MINI_MESSAGE.deserialize(MATCH_FOUND_MESSAGE, modeName, time));
+        this.player.sendMessage(MINI_MESSAGE.deserialize(MATCH_FOUND_MESSAGE, Placeholder.unparsed("mode", this.gameMode.friendlyName())));
+        this.player.scheduler().submitTask(new NotifyTeleportTimeTask(this.player, match));
     }
 
     @Override
@@ -83,5 +83,38 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     @Override
     public void destroy() {
         this.notificationTask.cancel(false);
+    }
+
+    private static final class NotifyTeleportTimeTask implements Supplier<TaskSchedule> {
+
+        private final @NotNull Player player;
+        private final int teleportSeconds;
+
+        private int count = 0;
+
+        NotifyTeleportTimeTask(@NotNull Player player, @NotNull PendingMatch match) {
+            this.player = player;
+            this.teleportSeconds = this.calculateSecondsToTeleport(match);
+        }
+
+        @Override
+        public @NotNull TaskSchedule get() {
+            if (this.count >= this.teleportSeconds) {
+                this.player.sendMessage(TELEPORTING_MESSAGE);
+                return TaskSchedule.stop();
+            }
+
+            int secondsLeft = this.teleportSeconds - this.count;
+            this.player.sendMessage(MINI_MESSAGE.deserialize(TELEPORTING_IN_MESSAGE, Placeholder.unparsed("time", String.valueOf(secondsLeft))));
+
+            this.count++;
+            return TaskSchedule.seconds(1);
+        }
+
+        private int calculateSecondsToTeleport(@NotNull PendingMatch match) {
+            Instant now = Instant.now();
+            Instant teleportTime = ProtoTimestampConverter.fromProto(match.getTeleportTime());
+            return (int) (teleportTime.getEpochSecond() - now.getEpochSecond());
+        }
     }
 }
