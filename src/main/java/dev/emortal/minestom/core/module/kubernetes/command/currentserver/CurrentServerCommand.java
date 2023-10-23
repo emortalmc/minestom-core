@@ -24,7 +24,8 @@ public final class CurrentServerCommand extends Command {
 
     private static final String MESSAGE = """
             <dark_purple>Proxy: <light_purple><proxy_id>
-            <dark_purple>Server: <light_purple><server_id>""";
+            <dark_purple>Server: <light_purple><server_id>
+            <dark_purple>Fleet: <light_purple><fleet_id>""";
     private static final String COPY_MESSAGE = """
             Proxy: %s
             Server: %s
@@ -60,8 +61,9 @@ public final class CurrentServerCommand extends Command {
 
         var serverId = Placeholder.unparsed("server_id", currentServer.getServerId());
         var proxyId = Placeholder.unparsed("proxy_id", currentServer.getProxyId());
+        var fleetId = Placeholder.unparsed("fleet_id", currentServer.getFleetName());
 
-        var message = MiniMessage.miniMessage().deserialize(MESSAGE, serverId, proxyId)
+        var message = MiniMessage.miniMessage().deserialize(MESSAGE, serverId, proxyId, fleetId)
                 .clickEvent(ClickEvent.copyToClipboard(this.createCopyableData(currentServer, player)))
                 .hoverEvent(HoverEvent.showText(Component.text("Click to copy", NamedTextColor.GREEN)));
         sender.sendMessage(message);
