@@ -93,6 +93,7 @@ public final class BadgeGui {
 
     private void drawInventory(@NotNull List<Badge> allBadges, @NotNull Set<String> ownedBadgeIds, @Nullable String activeBadgeId) {
         List<Badge> badges = allBadges.stream()
+                .filter(badge -> !badge.getGuiItem().getMaterial().equals("minecraft:air"))
                 .sorted(Comparator.comparingLong(Badge::getPriority))
                 .toList();
 
