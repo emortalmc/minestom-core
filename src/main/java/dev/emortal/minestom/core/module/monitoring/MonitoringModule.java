@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -106,6 +108,9 @@ public final class MonitoringModule extends MinestomModule {
                 .setApplicationName(FLEET_NAME)
                 .setProfilingEvent(EventType.ITIMER)
                 .setFormat(Format.JFR)
+                .setProfilingLock("10ms")
+                .setProfilingAlloc("512k")
+                .setUploadInterval(Duration.ofSeconds(10))
                 .setServerAddress(PYROSCOPE_ADDRESS)
                 .build();
 
