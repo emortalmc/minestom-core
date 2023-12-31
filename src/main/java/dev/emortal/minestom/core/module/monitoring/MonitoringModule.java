@@ -34,9 +34,9 @@ import java.util.Objects;
 public final class MonitoringModule extends MinestomModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(MonitoringModule.class);
 
-    private static final boolean ENABLED = Boolean.parseBoolean(System.getenv("MONITORING_ENABLED"));
     private static final String FLEET_NAME = Objects.requireNonNullElse(System.getenv("FLEET_NAME"), "unknown");
-    private static final String PYROSCOPE_SERVER_ADDRESS = System.getenv("PYROSCOPE_SERVER_ADDRESS");
+    private static final String NAMESPACE = Objects.requireNonNullElse(System.getenv("NAMESPACE"), "unknown");
+    private static final String PYROSCOPE_ADDRESS = System.getenv("PYROSCOPE_ADDRESS");
 
     public MonitoringModule(@NotNull ModuleEnvironment environment) {
         super(environment);
@@ -44,7 +44,7 @@ public final class MonitoringModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
-        if (!Environment.isProduction() || !ENABLED) {
+        if (!Environment.isProduction()) {
             LOGGER.warn("Monitoring is disabled.");
             return false;
         }
@@ -52,13 +52,12 @@ public final class MonitoringModule extends MinestomModule {
         LOGGER.info("Starting monitoring with: [fleet={}, server={}]", FLEET_NAME, Environment.getHostname());
 
         var registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-        registry.config().meterFilter(new PrometheusRenameFilter()).commonTags("fleet", FLEET_NAME);
+        registry.config().meterFilter(new PrometheusRenameFilter())
+                .commonTags("fleet", FLEET_NAME, "server", Environment.getHostname());
 
-        if (Environment.isProduction()) {
-            registry.config().commonTags("server", Environment.getHostname());
-        }
-
-        if (Environment.isProduction()) {
+        if (PYROSCOPE_ADDRESS == null) {
+            LOGGER.warn("PYROSCOPE_ADDRESS not set. Pyroscope will not be enabled.");
+        } else {
             this.setupPyroscope();
         }
 
@@ -98,11 +97,6 @@ public final class MonitoringModule extends MinestomModule {
     }
 
     private void setupPyroscope() {
-        if (PYROSCOPE_SERVER_ADDRESS == null) {
-            LOGGER.warn("PYROSCOPE_SERVER_ADDRESS not set. Pyroscope will not be enabled.");
-            return;
-        }
-
         Pyroscope.setStaticLabels(Map.of(
                 "fleet", FLEET_NAME,
                 "pod", Environment.getHostname()
@@ -112,8 +106,12 @@ public final class MonitoringModule extends MinestomModule {
                 .setApplicationName(FLEET_NAME)
                 .setProfilingEvent(EventType.ITIMER)
                 .setFormat(Format.JFR)
-                .setServerAddress(PYROSCOPE_SERVER_ADDRESS)
+                .setServerAddress(PYROSCOPE_ADDRESS)
                 .build();
+
+        String labels = Pyroscope.getStaticLabels().toString();
+        LOGGER.info("Starting Pyroscope with: [{}, applicationName={}]", labels, config.applicationName);
+
         PyroscopeAgent.start(new PyroscopeAgent.Options.Builder(config).build());
     }
 

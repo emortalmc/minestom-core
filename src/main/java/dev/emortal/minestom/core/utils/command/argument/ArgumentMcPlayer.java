@@ -71,7 +71,7 @@ public final class ArgumentMcPlayer {
         Pageable pageable = Pageable.newBuilder().setPage(0).setSize(15).build();
         List<McPlayer> players;
         try {
-            players = this.playerService.searchPlayersByUsername(player.getUuid(), input, pageable, this.filterMethod);
+            players = this.playerService.searchPlayersByUsername(player.getUuid(), input, pageable, this.filterMethod, null);
         } catch (StatusRuntimeException exception) {
             LOGGER.error("Failed to search players by username '{}'", input, exception);
             return;
