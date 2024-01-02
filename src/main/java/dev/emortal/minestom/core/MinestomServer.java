@@ -9,6 +9,7 @@ import dev.emortal.minestom.core.module.kubernetes.KubernetesModule;
 import dev.emortal.minestom.core.module.liveconfig.LiveConfigModule;
 import dev.emortal.minestom.core.module.matchmaker.MatchmakerModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
+import dev.emortal.minestom.core.module.monitoring.MonitoringModule;
 import dev.emortal.minestom.core.module.permissions.PermissionModule;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.extras.MojangAuth;
@@ -120,7 +121,8 @@ public final class MinestomServer {
                     .module(ChatModule.class, ChatModule::new)
                     .module(LiveConfigModule.class, LiveConfigModule::new)
                     .module(MessagingModule.class, MessagingModule::new)
-                    .module(MatchmakerModule.class, MatchmakerModule::new);
+                    .module(MatchmakerModule.class, MatchmakerModule::new)
+                    .module(MonitoringModule.class, MonitoringModule::new);
         }
 
         public @NotNull Builder module(@NotNull Class<? extends Module> clazz, @NotNull LoadableModule.Creator moduleCreator) {
