@@ -105,7 +105,7 @@ public final class MonitoringModule extends MinestomModule {
         ));
 
         Config config = new Config.Builder()
-                .setApplicationName(FLEET_NAME)
+                .setApplicationName(Environment.getHostname())
                 .setProfilingEvent(EventType.ITIMER)
                 .setFormat(Format.JFR)
                 .setProfilingLock("10ms")
