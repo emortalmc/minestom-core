@@ -31,6 +31,7 @@ public final class KubernetesModule extends Module {
 
     private static final boolean KUBERNETES_ENABLED = Environment.isProduction(); // Kubernetes support can only be enabled if run in-cluster
 
+    private static final boolean KUBE_CLIENT_DEBUG = Boolean.parseBoolean(System.getenv("KUBE_CLIENT_DEBUG"));
     private static final boolean AGONES_SDK_ENABLED;
     private static final String AGONES_ADDRESS = "localhost"; // SDK runs as a sidecar in production so address is always localhost
     private static final int AGONES_GRPC_PORT;
@@ -58,7 +59,7 @@ public final class KubernetesModule extends Module {
         // kubernetes
         if (KUBERNETES_ENABLED) {
             try {
-                this.apiClient = Config.defaultClient();
+                this.apiClient = Config.defaultClient().setDebugging(KUBE_CLIENT_DEBUG);
                 Configuration.setDefaultApiClient(this.apiClient);
 
                 this.protoClient = new ProtoClient(this.apiClient);
