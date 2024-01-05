@@ -12,6 +12,7 @@ import dev.emortal.minestom.core.utils.resolver.LocalMcPlayer;
 import dev.emortal.minestom.core.utils.resolver.PlayerResolver;
 import io.grpc.StatusRuntimeException;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandContext;
@@ -44,6 +45,11 @@ public final class BadgeAdminSubcommand extends Command {
     private void executeAddBadgeToPlayer(@NotNull CommandSender sender, @NotNull CommandContext context) {
         LocalMcPlayer player = context.<Supplier<LocalMcPlayer>>get("player").get();
         String badgeId = context.get("badge");
+
+        if (player == null) {
+            sender.sendMessage(Component.text("Player %s not found".formatted(context.getRaw("player")), NamedTextColor.RED));
+            return;
+        }
 
         AddBadgeToPlayerResult result;
         try {
