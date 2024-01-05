@@ -2,6 +2,8 @@ package dev.emortal.minestom.core.utils;
 
 import dev.emortal.minestom.core.Environment;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 public final class EnvUtils {
 
@@ -16,7 +18,7 @@ public final class EnvUtils {
      * @return the environment variable value or the default value
      * @throws IllegalStateException if the environment variable is not set and the environment is production
      */
-    public static @NotNull String getOrDefaultUnlessProd(@NotNull String envKey, @NotNull String defaultValue) {
+    public static @UnknownNullability String getOrDefaultUnlessProd(@NotNull String envKey, @Nullable String defaultValue) {
         String envValue = System.getenv(envKey);
         if (envValue != null && !envValue.isEmpty()) return envValue;
 

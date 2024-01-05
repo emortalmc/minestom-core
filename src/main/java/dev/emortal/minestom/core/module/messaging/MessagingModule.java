@@ -28,8 +28,8 @@ import java.util.function.Consumer;
 public final class MessagingModule extends Module {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessagingModule.class);
 
-    private static final String KAFKA_HOST = EnvUtils.getOrDefaultUnlessProd("KAFKA_HOST", "127.0.0.1");
-    private static final String KAFKA_PORT = EnvUtils.getOrDefaultUnlessProd("KAFKA_PORT", "9092");
+    private static final String KAFKA_HOST = EnvUtils.getOrDefaultUnlessProd("KAFKA_HOST", null);
+    private static final String KAFKA_PORT = EnvUtils.getOrDefaultUnlessProd("KAFKA_PORT", null);
 
     private @Nullable FriendlyKafkaConsumer kafkaConsumer;
     private @Nullable FriendlyKafkaProducer kafkaProducer;
@@ -53,6 +53,11 @@ public final class MessagingModule extends Module {
 
     @Override
     public boolean onLoad() {
+        if (KAFKA_HOST == null || KAFKA_PORT == null) {
+            LOGGER.warn("Kafka is not available, disabling Kafka consumer and producer");
+            return false;
+        }
+
         if (!Environment.isProduction() && !PortUtils.isPortUsed(KAFKA_HOST, Integer.parseInt(KAFKA_PORT))) {
             LOGGER.warn("Kafka is not available, disabling Kafka consumer and producer");
             return false;

@@ -18,7 +18,7 @@ public final class PortUtils {
      */
     public static boolean isPortUsed(@NotNull String address, int port) {
         try (var socket = new Socket(address, port)) {
-            socket.setSoTimeout(10);
+            socket.setSoTimeout(50);
             return true;
         } catch (ConnectException exception) {
             return false;
