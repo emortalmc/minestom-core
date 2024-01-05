@@ -100,12 +100,11 @@ public final class MonitoringModule extends MinestomModule {
 
     private void setupPyroscope() {
         Pyroscope.setStaticLabels(Map.of(
-                "fleet", FLEET_NAME,
                 "pod", Environment.getHostname()
         ));
 
         Config config = new Config.Builder()
-                .setApplicationName(Environment.getHostname())
+                .setApplicationName(FLEET_NAME)
                 .setProfilingEvent(EventType.ITIMER)
                 .setFormat(Format.JFR)
                 .setProfilingLock("10ms")
