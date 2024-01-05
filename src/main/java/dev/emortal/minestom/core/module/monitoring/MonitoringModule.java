@@ -100,7 +100,8 @@ public final class MonitoringModule extends MinestomModule {
 
     private void setupPyroscope() {
         Pyroscope.setStaticLabels(Map.of(
-                "pod", Environment.getHostname()
+                "pod", Environment.getHostname(),
+                "namespace", NAMESPACE
         ));
 
         Config config = new Config.Builder()
