@@ -10,8 +10,8 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
+import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
-import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.permission.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ public final class PermissionCache {
         this.permissionService = permissionService;
 
         eventNode.addListener(PlayerDisconnectEvent.class, this::onDisconnect);
-        eventNode.addListener(PlayerLoginEvent.class, this::onLogin);
+        eventNode.addListener(AsyncPlayerConfigurationEvent.class, this::onLogin);
 
         this.loadRoles();
     }
@@ -90,7 +90,7 @@ public final class PermissionCache {
     }
 
     private void updateUserPermissions(@NotNull User user) {
-        Player player = MinecraftServer.getConnectionManager().getPlayer(user.id());
+        Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(user.id());
         if (player == null) {
             LOGGER.error("Couldn't find player with id {}", user.id());
             return;
@@ -173,7 +173,7 @@ public final class PermissionCache {
     }
 
     private void refreshCommands(@NotNull UUID playerId) {
-        Player player = MinecraftServer.getConnectionManager().getPlayer(playerId);
+        Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(playerId);
         if (player == null) {
             LOGGER.error("Couldn't find player with id {}", playerId);
             return;
@@ -186,7 +186,7 @@ public final class PermissionCache {
         this.userCache.remove(event.getPlayer().getUuid());
     }
 
-    private void onLogin(@NotNull PlayerLoginEvent event) {
+    private void onLogin(@NotNull AsyncPlayerConfigurationEvent event) {
         this.loadUser(event.getPlayer());
     }
 

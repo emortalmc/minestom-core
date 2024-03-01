@@ -23,8 +23,8 @@ import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
+import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
-import net.minestom.server.event.player.PlayerLoginEvent;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +54,7 @@ public final class MatchmakingSessionManager {
         this.sessionCreator = sessionCreator;
         this.gameModes = gameModes;
 
-        eventNode.addListener(PlayerLoginEvent.class, this::handlePlayerLogin);
+        eventNode.addListener(AsyncPlayerConfigurationEvent.class, this::handlePlayerLogin);
 
         eventNode.addListener(PlayerDisconnectEvent.class, event -> {
             UUID playerId = event.getPlayer().getUuid();
@@ -100,7 +100,7 @@ public final class MatchmakingSessionManager {
         for (String playerId : ticket.getPlayerIdsList()) {
             UUID uuid = UUID.fromString(playerId);
 
-            Player player = MinecraftServer.getConnectionManager().getPlayer(uuid);
+            Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
             if (player == null) continue;
 
             GameModeConfig gameMode = this.gameModes.getConfig(ticket.getGameModeId());
@@ -143,7 +143,7 @@ public final class MatchmakingSessionManager {
             }
 
             UUID uuid = UUID.fromString(playerId);
-            Player player = MinecraftServer.getConnectionManager().getPlayer(uuid);
+            Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
             if (player == null) continue;
 
             session = this.sessionCreator.create(player, gameMode, newTicket);
@@ -181,7 +181,7 @@ public final class MatchmakingSessionManager {
         UUID id = UUID.fromString(stringId);
 
         if (playerMustBeOnline) {
-            Player player = MinecraftServer.getConnectionManager().getPlayer(id);
+            Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(id);
             if (player == null) return;
         }
 
@@ -197,7 +197,7 @@ public final class MatchmakingSessionManager {
         session.destroy();
     }
 
-    private void handlePlayerLogin(@NotNull PlayerLoginEvent event) {
+    private void handlePlayerLogin(@NotNull AsyncPlayerConfigurationEvent event) {
         Player player = event.getPlayer();
         UUID playerId = player.getUuid();
 

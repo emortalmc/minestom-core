@@ -25,7 +25,7 @@ public final class PlayerResolver {
 
     @Blocking
     public @Nullable LocalMcPlayer getPlayer(@NotNull UUID uuid) throws StatusException {
-        Player player = this.connectionManager.getPlayer(uuid);
+        Player player = this.connectionManager.getOnlinePlayerByUuid(uuid);
         if (player != null) return this.convertPlayer(player);
 
         return this.requestPlayer(uuid);
@@ -35,7 +35,7 @@ public final class PlayerResolver {
     public @Nullable LocalMcPlayer getPlayer(@NotNull String username) throws StatusException {
         String usernameLowercase = username.toLowerCase(Locale.ROOT);
 
-        Player player = this.connectionManager.getPlayer(usernameLowercase);
+        Player player = this.connectionManager.getOnlinePlayerByUsername(usernameLowercase);
         if (player != null) return this.convertPlayer(player);
 
         return this.requestPlayer(usernameLowercase);
