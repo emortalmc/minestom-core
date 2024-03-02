@@ -21,12 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 public final class MinestomServer {
-    private static final Logger LOGGER;
-
-    static {
-        LoggingInitializer.initialize();
-        LOGGER = LoggerFactory.getLogger(MinestomServer.class);
-    }
+    private static final Logger LOGGER = LoggerFactory.getLogger(MinestomServer.class);
 
     private static final String DEFAULT_ADDRESS = "0.0.0.0";
     private static final String DEFAULT_PORT = "25565";

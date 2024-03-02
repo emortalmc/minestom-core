@@ -25,7 +25,7 @@ dependencies {
     implementation("io.pyroscope:agent:0.12.2")
 
     // Logger
-    implementation("ch.qos.logback:logback-classic:1.4.14")
+    implementation("ch.qos.logback:logback-classic:1.5.1")
     implementation("net.logstash.logback:logstash-logback-encoder:7.4")
 
     // APIs

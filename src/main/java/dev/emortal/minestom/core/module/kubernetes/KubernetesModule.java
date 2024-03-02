@@ -103,8 +103,6 @@ public final class KubernetesModule extends Module {
 
         this.sdk.setAnnotation(protocolVersion, new IgnoredStreamObserver<>());
         this.sdk.setAnnotation(versionName, new IgnoredStreamObserver<>());
-
-        LOGGER.info("Set Agones version annotations. [protocol={}, version={}]", MinecraftServer.PROTOCOL_VERSION, MinecraftServer.VERSION_NAME);
     }
 
     @Override
