@@ -6,6 +6,10 @@
         </encoder>
     </appender>
 
+    <root level="INFO">
+        <appender-ref ref="console"/>
+    </root>
+
     <logger name="org.apache.kafka" level="INFO" additivity="false">
         <appender-ref ref="console"/>
     </logger>
