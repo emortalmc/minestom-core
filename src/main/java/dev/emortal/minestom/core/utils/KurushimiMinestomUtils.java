@@ -1,6 +1,8 @@
 package dev.emortal.minestom.core.utils;
 
 import dev.emortal.api.service.matchmaker.MatchmakerService;
+import dev.emortal.api.service.matchmaker.QueueOptions;
+import dev.emortal.api.service.matchmaker.QueuePlayerResult;
 import dev.emortal.api.utils.GrpcStubCollection;
 import io.grpc.StatusRuntimeException;
 import net.minestom.server.MinecraftServer;
@@ -33,6 +35,31 @@ public final class KurushimiMinestomUtils {
         MinecraftServer.getGlobalEventHandler().addChild(EVENT_NODE);
     }
 
+    @NonBlocking
+    public static void sendToGamemode(@NotNull Collection<? extends Player> players, @NotNull String gamemodeId, @NotNull Runnable successRunnable,
+                                      @NotNull Runnable failureRunnable, int retries) {
+        test(players, successRunnable, failureRunnable);
+
+        for (Player player : players) {
+            Thread.startVirtualThread(() -> sendToGamemode(player, gamemodeId, () -> LOGGER.warn("Failed to create ticket to send '{}' to gamemode", player.getUsername())));
+        }
+    }
+
+    @Blocking
+    private static void sendToGamemode(@NotNull Player player, @NotNull String gamemodeId, @NotNull Runnable failureRunnable) {
+        try {
+            QueuePlayerResult result = MATCHMAKER.queuePlayer(gamemodeId, player.getUuid());
+            switch (result) {
+                case INVALID_GAME_MODE, GAME_MODE_DISABLED, ALREADY_IN_QUEUE, INVALID_MAP, PARTY_TOO_LARGE -> {
+                    failureRunnable.run();
+                }
+            }
+        } catch (StatusRuntimeException exception) {
+            LOGGER.error("Failed to queue '{}' for '{}'", player.getUsername(), gamemodeId, exception);
+            failureRunnable.run();
+        }
+    }
+
     /**
      * Note: The failure runnable is only run at the end of the time if players are not sent.
      * If there are other errors, they may only affect one player and resolve with retries.
@@ -47,6 +74,28 @@ public final class KurushimiMinestomUtils {
     @NonBlocking
     public static void sendToLobby(@NotNull Collection<? extends Player> players, @NotNull Runnable successRunnable,
                                    @NotNull Runnable failureRunnable, int retries) {
+        test(players, successRunnable, failureRunnable);
+
+        for (Player player : players) {
+            Thread.startVirtualThread(() -> sendToLobby(player, () -> LOGGER.warn("Failed to create ticket to send '{}' to lobby", player.getUsername())));
+        }
+    }
+
+    @NonBlocking
+    public static void sendToLobby(@NotNull Collection<? extends Player> players, @NotNull Runnable successRunnable, @NotNull Runnable failureRunnable) {
+        sendToLobby(players, successRunnable, failureRunnable, 1);
+    }
+
+    @Blocking
+    private static void sendToLobby(@NotNull Player player, @NotNull Runnable failureRunnable) {
+        try {
+            MATCHMAKER.sendPlayerToLobby(player.getUuid(), false);
+        } catch (StatusRuntimeException exception) {
+            failureRunnable.run();
+        }
+    }
+
+    private static void test(@NotNull Collection<? extends Player> players, @NotNull Runnable successRunnable, @NotNull Runnable failureRunnable) {
         if (MATCHMAKER == null) throw new IllegalStateException("Kurushimi stub is not present.");
 
         Set<? extends Player> remainingPlayers = new HashSet<>(players);
@@ -72,23 +121,5 @@ public final class KurushimiMinestomUtils {
                 successRunnable.run();
             }
         });
-
-        for (Player player : players) {
-            Thread.startVirtualThread(() -> sendToLobby(player, () -> LOGGER.warn("Failed to create ticket to send '{}' to lobby", player.getUsername())));
-        }
-    }
-
-    @NonBlocking
-    public static void sendToLobby(@NotNull Collection<? extends Player> players, @NotNull Runnable successRunnable, @NotNull Runnable failureRunnable) {
-        sendToLobby(players, successRunnable, failureRunnable, 1);
-    }
-
-    @Blocking
-    private static void sendToLobby(@NotNull Player player, @NotNull Runnable failureRunnable) {
-        try {
-            MATCHMAKER.sendPlayerToLobby(player.getUuid(), false);
-        } catch (StatusRuntimeException exception) {
-            failureRunnable.run();
-        }
     }
 }
