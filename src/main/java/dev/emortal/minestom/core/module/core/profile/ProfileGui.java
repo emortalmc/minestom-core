@@ -12,14 +12,15 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.entity.PlayerSkin;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
-import net.minestom.server.inventory.condition.InventoryConditionResult;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.metadata.PlayerHeadMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Date;
 
 public class ProfileGui extends Inventory {
     private static final int[] BLOCKED_SLOTS = new int[]{0, 1, 2, 3, 5, 6, 7, 8,
@@ -33,6 +34,8 @@ public class ProfileGui extends Inventory {
     private static final int PLAYER_ICON_SLOT = 4;
     private static final int ACHIEVEMENTS_SLOT = 21;
     private static final int GAME_HISTORY_SLOT = 23;
+
+    private static final SimpleDateFormat FIRST_LOGIN_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm");
 
     private final @NotNull McPlayer targetPlayer;
 
@@ -62,8 +65,9 @@ public class ProfileGui extends Inventory {
                 .lore(
                         Component.empty(),
                         this.levelLine().decoration(TextDecoration.ITALIC, false),
-                        this.playtimeLine().decoration(TextDecoration.ITALIC, false),
-                        this.lastOnlineLine().decoration(TextDecoration.ITALIC, false)
+                        this.firstLoginLine().decoration(TextDecoration.ITALIC, false),
+                        this.lastOnlineLine().decoration(TextDecoration.ITALIC, false),
+                        this.playtimeLine().decoration(TextDecoration.ITALIC, false)
                 )
                 .build();
     }
@@ -73,9 +77,12 @@ public class ProfileGui extends Inventory {
         int level = EmortalXP.toLevel(xp);
         long xpOfLevel = EmortalXP.toXp(level);
 
+        long xpOfNextLevel = EmortalXP.toXp(level + 1);
+        long xpIntoNextLevel = xp - xpOfLevel;
+        float progress = (float) xpIntoNextLevel / (xpOfNextLevel - xpOfLevel);
+
         return Component.text("Level: ", NamedTextColor.GRAY)
-                .append(Component.text(level, NamedTextColor.GOLD))
-                .append(Component.text(" (+%s XP)".formatted(xp - xpOfLevel), NamedTextColor.YELLOW));
+                .append(Component.text("%.2f".formatted(level + progress), NamedTextColor.GOLD));
     }
 
     private Component playtimeLine() {
@@ -84,6 +91,13 @@ public class ProfileGui extends Inventory {
 
         return Component.text("Playtime: ", NamedTextColor.GRAY)
                 .append(Component.text(playtimeFormatted, NamedTextColor.GOLD));
+    }
+
+    private Component firstLoginLine() {
+        Instant firstLogin = ProtoTimestampConverter.fromProto(this.targetPlayer.getFirstLogin());
+
+        return Component.text("First Login: ", NamedTextColor.GRAY)
+                .append(Component.text(FIRST_LOGIN_FORMAT.format(Date.from(firstLogin)), NamedTextColor.GOLD));
     }
 
     private Component lastOnlineLine() {

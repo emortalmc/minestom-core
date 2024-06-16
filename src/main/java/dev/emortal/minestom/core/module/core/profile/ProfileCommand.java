@@ -6,6 +6,9 @@ import dev.emortal.api.service.mcplayer.McPlayerService;
 import dev.emortal.minestom.core.utils.command.argument.ArgumentMcPlayer;
 import dev.emortal.minestom.core.utils.resolver.LocalMcPlayer;
 import dev.emortal.minestom.core.utils.resolver.PlayerResolver;
+import io.grpc.StatusRuntimeException;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.arguments.ArgumentString;
 import net.minestom.server.entity.Player;
@@ -14,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class ProfileCommand extends Command {
@@ -43,7 +47,7 @@ public class ProfileCommand extends Command {
                 return;
             }
 
-            this.execute(player, player.getUsername());
+            this.execute(player, player.getUuid());
         });
 
         this.addSyntax((commandSender, context) -> {
@@ -53,12 +57,28 @@ public class ProfileCommand extends Command {
             }
 
             LocalMcPlayer target = context.<Supplier<LocalMcPlayer>>get("player").get();
-            this.execute(player, target.username());
+            if (target == null) {
+                player.sendMessage(Component.text("Player '%s' not found".formatted(context.getRaw("player")), NamedTextColor.RED));
+                return;
+            }
+
+            this.execute(player, target.uuid());
         }, playerArgument);
     }
 
-    private void execute(@NotNull Player executor, @NotNull String targetUsername) {
-        McPlayer player = this.playerService.getPlayerByUsername(targetUsername);
+    private void execute(@NotNull Player executor, @NotNull UUID targetId) {
+        McPlayer player;
+        try {
+            player = this.playerService.getPlayerById(targetId);
+        } catch (StatusRuntimeException exception) {
+            LOGGER.error("Failed to get player to open profile of target {}", targetId, exception);
+            return;
+        }
+
+        if (player == null) {
+            LOGGER.error("Player not found for target (is null) {}", targetId);
+            return;
+        }
 
         Inventory inventory = new ProfileGui(player);
         executor.openInventory(inventory);
