@@ -20,8 +20,8 @@ repositories {
 
 dependencies {
     // Minestom
-    api("net.minestom:minestom-snapshots:17fd82a5c1")
-    api("net.kyori:adventure-text-minimessage:4.15.0") // Version that Minestom uses (https://github.com/Minestom/Minestom/blob/17fd82a5c1dc845d417ab2c60ae1248369e4fdff/gradle/libs.versions.toml#L7)
+    api("net.minestom:minestom-snapshots:80377e37d7")
+    api("net.kyori:adventure-text-minimessage:4.15.0")
     implementation("io.pyroscope:agent:0.12.2")
 
     // Logger
