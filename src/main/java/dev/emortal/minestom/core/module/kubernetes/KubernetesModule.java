@@ -116,15 +116,15 @@ public final class KubernetesModule extends Module {
 
     private void loadAgonesCountsAndLists() {
         MinecraftServer.getGlobalEventHandler().addListener(AsyncPlayerConfigurationEvent.class, event -> {
-            this.updateCounter("players", 1);
-            this.addToList("players", event.getPlayer().getUuid().toString());
+            this.updateAgonesCounter("players", 1);
+            this.addToAgonesList("players", event.getPlayer().getUuid().toString());
         }).addListener(PlayerDisconnectEvent.class, event -> {
-            this.updateCounter("players", -1);
-            this.removeFromList("players", event.getPlayer().getUuid().toString());
+            this.updateAgonesCounter("players", -1);
+            this.removeFromAgonesList("players", event.getPlayer().getUuid().toString());
         });
     }
 
-    private void updateCounter(String name, long diff) {
+    public void updateAgonesCounter(String name, long diff) {
         this.betaSdk.updateCounter(BetaAgonesSDKProto.UpdateCounterRequest.newBuilder()
                 .setCounterUpdateRequest(BetaAgonesSDKProto.CounterUpdateRequest.newBuilder()
                         .setName(name)
@@ -132,14 +132,14 @@ public final class KubernetesModule extends Module {
                 .build(), new IgnoredStreamObserver<>());
     }
 
-    private void addToList(String listName, String value) {
+    public void addToAgonesList(String listName, String value) {
         this.betaSdk.addListValue(BetaAgonesSDKProto.AddListValueRequest.newBuilder()
                 .setName(listName)
                 .setValue(value)
                 .build(), new IgnoredStreamObserver<>());
     }
 
-    private void removeFromList(String listName, String value) {
+    public void removeFromAgonesList(String listName, String value) {
         this.betaSdk.removeListValue(BetaAgonesSDKProto.RemoveListValueRequest.newBuilder()
                 .setName(listName)
                 .setValue(value)
@@ -178,7 +178,11 @@ public final class KubernetesModule extends Module {
         return this.protoClient;
     }
 
-    public @Nullable SDKGrpc.SDKStub getSdk() {
+    public @Nullable SDKGrpc.SDKStub getAgonesSdk() {
         return this.sdk;
+    }
+
+    public @Nullable dev.agones.sdk.beta.SDKGrpc.SDKStub getAgonesBetaSdk() {
+        return this.betaSdk;
     }
 }
