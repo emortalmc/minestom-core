@@ -89,7 +89,7 @@ public final class KubernetesModule extends Module {
         this.sdk = SDKGrpc.newStub(channel);
         this.betaSdk = dev.agones.sdk.beta.SDKGrpc.newStub(channel);
 
-        MinecraftServer.getCommandManager().register(new AgonesCommand(this.sdk));
+        MinecraftServer.getCommandManager().register(new AgonesCommand(this.sdk, this.betaSdk));
 
         for (AgonesSDKProto.KeyValue label : this.additionalLabels) {
             this.sdk.setLabel(label, new IgnoredStreamObserver<>());

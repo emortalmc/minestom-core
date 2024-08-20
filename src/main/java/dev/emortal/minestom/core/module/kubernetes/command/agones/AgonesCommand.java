@@ -11,18 +11,21 @@ import org.jetbrains.annotations.NotNull;
 
 public final class AgonesCommand extends Command {
 
-    public AgonesCommand(@NotNull SDKGrpc.SDKStub sdk) {
+    public AgonesCommand(@NotNull SDKGrpc.SDKStub sdk, dev.agones.sdk.beta.SDKGrpc.SDKStub betaSdk) {
         super("magones");
         this.setCondition(ExtraConditions.hasPermission("command.agones"));
 
-        var sdkSubs = new SdkSubCommands(sdk);
+        var sdkSubs = new SdkSubCommands(sdk, betaSdk);
 
         // /magones get gameserver
         this.addSyntax(sdkSubs::executeGetGameServer, new ArgumentLiteral("get"), new ArgumentLiteral("gameserver"));
-        // /magones reserve <duration>
-        this.addSyntax(sdkSubs::executeReserve, new ArgumentLiteral("reserve"), new ArgumentTime("duration"));
-        // /magones allocate
-        this.addSyntax(sdkSubs::executeAllocate, new ArgumentLiteral("allocate"));
+
+        // /magones get count [id]
+        this.addSyntax(sdkSubs::executeListCounters, new ArgumentLiteral("get"), new ArgumentLiteral("counters"));
+
+        // /magones get list [id]
+        this.addSyntax(sdkSubs::executeListLists, new ArgumentLiteral("get"), new ArgumentLiteral("list"));
+        this.addSyntax(sdkSubs::executeGetList, new ArgumentLiteral("get"), new ArgumentLiteral("list"), new ArgumentString("id"));
 
         var set = new ArgumentLiteral("set");
         var key = new ArgumentString("key");
