@@ -25,6 +25,7 @@ import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.event.player.PlayerSpawnEvent;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,7 @@ public final class MatchmakingSessionManager {
         this.sessionCreator = sessionCreator;
         this.gameModes = gameModes;
 
-        eventNode.addListener(AsyncPlayerConfigurationEvent.class, this::handlePlayerLogin);
+        eventNode.addListener(PlayerSpawnEvent.class, this::handlePlayerLogin);
 
         eventNode.addListener(PlayerDisconnectEvent.class, event -> {
             UUID playerId = event.getPlayer().getUuid();
@@ -104,7 +105,7 @@ public final class MatchmakingSessionManager {
             if (player == null) continue;
 
             GameModeConfig gameMode = this.gameModes.getConfig(ticket.getGameModeId());
-            MatchmakingSession session = this.sessionCreator.create(player, gameMode, ticket);
+            MatchmakingSession session = this.sessionCreator.create(player, gameMode, ticket, null);
             this.sessions.put(uuid, session);
             shouldCache = true;
         }
@@ -146,7 +147,7 @@ public final class MatchmakingSessionManager {
             Player player = MinecraftServer.getConnectionManager().getOnlinePlayerByUuid(uuid);
             if (player == null) continue;
 
-            session = this.sessionCreator.create(player, gameMode, newTicket);
+            session = this.sessionCreator.create(player, gameMode, newTicket, null);
             this.sessions.put(uuid, session);
         }
 
@@ -197,7 +198,7 @@ public final class MatchmakingSessionManager {
         session.destroy();
     }
 
-    private void handlePlayerLogin(@NotNull AsyncPlayerConfigurationEvent event) {
+    private void handlePlayerLogin(@NotNull PlayerSpawnEvent event) {
         Player player = event.getPlayer();
         UUID playerId = player.getUuid();
 
@@ -206,7 +207,7 @@ public final class MatchmakingSessionManager {
             queueInfo = this.matchmaker.getPlayerQueueInfo(playerId);
         } catch (StatusRuntimeException exception) {
             LOGGER.error("Failed to get queue info for '{}'", player.getUsername(), exception);
-            player.sendMessage(Component.text("An unknown error occurred", NamedTextColor.RED));
+            player.sendMessage(Component.text("An unknown error occurred retrieving queue info", NamedTextColor.RED));
             return;
         }
 
@@ -223,7 +224,7 @@ public final class MatchmakingSessionManager {
             return;
         }
 
-        MatchmakingSession session = this.sessionCreator.create(player, mode, ticket);
+        MatchmakingSession session = this.sessionCreator.create(player, mode, ticket, queueInfo.getPendingMatch());
         this.sessions.put(playerId, session);
         this.ticketCache.put(ticket.getId(), ticket);
 
