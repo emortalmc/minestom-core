@@ -20,7 +20,7 @@ repositories {
 
 dependencies {
     // Minestom
-    api("net.minestom:minestom-snapshots:7b180172ce")
+    api("net.minestom:minestom-snapshots:789befee31")
     api("net.kyori:adventure-text-minimessage:4.15.0")
     implementation("io.pyroscope:agent:0.12.2")
 
