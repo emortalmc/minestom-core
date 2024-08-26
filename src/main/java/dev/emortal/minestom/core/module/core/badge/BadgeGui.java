@@ -12,9 +12,10 @@ import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
 import net.minestom.server.inventory.click.ClickType;
 import net.minestom.server.inventory.condition.InventoryConditionResult;
-import net.minestom.server.item.ItemHideFlag;
+import net.minestom.server.item.ItemComponent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
+import net.minestom.server.item.component.AttributeList;
 import net.minestom.server.tag.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -120,11 +121,12 @@ public final class BadgeGui {
             return;
         }
 
-        boolean isUnlocked = clickedItem.meta().getTag(BADGE_UNLOCKED_TAG);
-        boolean isActive = clickedItem.meta().getTag(BADGE_ACTIVE_TAG);
+
+        boolean isUnlocked = clickedItem.getTag(BADGE_UNLOCKED_TAG);
+        boolean isActive = clickedItem.getTag(BADGE_ACTIVE_TAG);
         if (!isUnlocked || isActive) return;
 
-        String badgeId = clickedItem.meta().getTag(BADGE_ID_TAG);
+        String badgeId = clickedItem.getTag(BADGE_ID_TAG);
         try {
             this.badgeService.setActiveBadge(clicker.getUuid(), badgeId);
         } catch (StatusRuntimeException exception) {
@@ -133,7 +135,7 @@ public final class BadgeGui {
             return;
         }
 
-        String badgeName = clickedItem.meta().getTag(BADGE_NAME_TAG);
+        String badgeName = clickedItem.getTag(BADGE_NAME_TAG);
         clicker.sendMessage(Component.text("Set active badge to " + badgeName, NamedTextColor.GREEN));
         new BadgeGui(this.badgeService, clicker); // Reopen the gui
     }
@@ -163,14 +165,13 @@ public final class BadgeGui {
         }
 
         return ItemStack.builder(Material.fromNamespaceId(guiItem.getMaterial()))
-                .displayName(MINI_MESSAGE.deserialize(guiItem.getDisplayName()))
-                .lore(lore)
-                .meta(builder -> builder.hideFlag(ItemHideFlag.HIDE_ATTRIBUTES)
-                        .set(BADGE_ID_TAG, badge.getId())
-                        .set(BADGE_NAME_TAG, badge.getFriendlyName())
-                        .set(BADGE_ACTIVE_TAG, isActive)
-                        .set(BADGE_UNLOCKED_TAG, isOwned)
-                )
-                .build();
+                .set(ItemComponent.ITEM_NAME, MINI_MESSAGE.deserialize(guiItem.getDisplayName()))
+                .set(ItemComponent.LORE, lore)
+                .set(BADGE_ID_TAG, badge.getId())
+                .set(BADGE_NAME_TAG, badge.getFriendlyName())
+                .set(BADGE_ACTIVE_TAG, isActive)
+                .set(BADGE_UNLOCKED_TAG, isOwned)
+                .set(ItemComponent.ATTRIBUTE_MODIFIERS, new AttributeList(List.of(), false)
+                ).build();
     }
 }

@@ -11,6 +11,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.entity.Player;
 import net.minestom.server.timer.TaskSchedule;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.concurrent.Executors;
@@ -33,7 +34,7 @@ public final class DefaultMatchmakingSessionImpl extends MatchmakingSession {
     private final @NotNull ScheduledFuture<?> notificationTask;
     private final @NotNull GameModeConfig gameMode;
 
-    public DefaultMatchmakingSessionImpl(@NotNull Player player, @NotNull GameModeConfig gameMode, @NotNull Ticket ticket) {
+    public DefaultMatchmakingSessionImpl(@NotNull Player player, @NotNull GameModeConfig gameMode, @NotNull Ticket ticket, @Nullable PendingMatch pendingMatch) {
         super(player, ticket);
 
         this.notificationTask = SCHEDULER.scheduleAtFixedRate(this::notifyPlayer, 30, 30, TimeUnit.SECONDS);

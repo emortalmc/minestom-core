@@ -22,14 +22,9 @@ import org.slf4j.LoggerFactory;
 public final class CurrentServerCommand extends Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(CurrentServerCommand.class);
 
-    private static final String MESSAGE = """
-            <dark_purple>Proxy: <light_purple><proxy_id>
-            <dark_purple>Server: <light_purple><server_id>
-            <dark_purple>Fleet: <light_purple><fleet_id>""";
     private static final String COPY_MESSAGE = """
             Proxy: %s
             Server: %s
-            Instance: %s
             Position: %s""";
 
     private final @NotNull PlayerTrackerService playerTracker;
@@ -59,13 +54,30 @@ public final class CurrentServerCommand extends Command {
             return;
         }
 
-        var serverId = Placeholder.unparsed("server_id", currentServer.getServerId());
-        var proxyId = Placeholder.unparsed("proxy_id", currentServer.getProxyId());
-        var fleetId = Placeholder.unparsed("fleet_id", currentServer.getFleetName());
+        Component message = Component.text().append(
+                Component.text("Proxy: ", NamedTextColor.DARK_PURPLE)
+                        .append(Component.text(currentServer.getProxyId(), NamedTextColor.LIGHT_PURPLE))
+                        .hoverEvent(HoverEvent.showText(Component.text("Click to copy Proxy ID", NamedTextColor.GREEN)))
+                        .clickEvent(ClickEvent.copyToClipboard(currentServer.getProxyId()))
+        ).append(
+                Component.newline()
+                        .append(Component.text("Server: ", NamedTextColor.DARK_PURPLE))
+                        .append(Component.text(currentServer.getServerId(), NamedTextColor.LIGHT_PURPLE))
+                        .hoverEvent(HoverEvent.showText(Component.text("Click to copy Server ID", NamedTextColor.GREEN)))
+                        .clickEvent(ClickEvent.copyToClipboard(currentServer.getServerId()))
+        ).append(
+                Component.newline()
+                        .append(Component.text("Fleet: ", NamedTextColor.DARK_PURPLE))
+                        .append(Component.text(currentServer.getFleetName(), NamedTextColor.LIGHT_PURPLE))
+                        .hoverEvent(HoverEvent.showText(Component.text("Click to copy Fleet Name", NamedTextColor.GREEN)))
+                        .clickEvent(ClickEvent.copyToClipboard(currentServer.getFleetName()))
+        ).append(
+                Component.newline()
+                        .append(Component.text("⎘ Click to copy", NamedTextColor.GREEN))
+                        .clickEvent(ClickEvent.copyToClipboard(this.createCopyableData(currentServer, player)))
+                        .hoverEvent(HoverEvent.showText(Component.text("Click to copy all data", NamedTextColor.GREEN)))
+        ).build();
 
-        var message = MiniMessage.miniMessage().deserialize(MESSAGE, serverId, proxyId, fleetId)
-                .clickEvent(ClickEvent.copyToClipboard(this.createCopyableData(currentServer, player)))
-                .hoverEvent(HoverEvent.showText(Component.text("Click to copy", NamedTextColor.GREEN)));
         sender.sendMessage(message);
     }
 
@@ -73,7 +85,6 @@ public final class CurrentServerCommand extends Command {
         return COPY_MESSAGE.formatted(
                 server.getProxyId(),
                 server.getServerId(),
-                player.getInstance().getUniqueId(),
                 this.formatPos(player.getPosition())
         );
     }

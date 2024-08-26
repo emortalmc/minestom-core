@@ -20,9 +20,8 @@ repositories {
 
 dependencies {
     // Minestom
-    api("net.minestom:minestom-snapshots:17fd82a5c1")
-//    api("net.minestom:minestom-snapshots:0c9527118a") // todo update to this minestom - lots of breaking changes
-    api("net.kyori:adventure-text-minimessage:4.15.0") // Version that Minestom uses (https://github.com/Minestom/Minestom/blob/17fd82a5c1dc845d417ab2c60ae1248369e4fdff/gradle/libs.versions.toml#L7)
+    api("net.minestom:minestom-snapshots:789befee31")
+    api("net.kyori:adventure-text-minimessage:4.15.0")
     implementation("io.pyroscope:agent:0.12.2")
 
     // Logger
@@ -31,8 +30,8 @@ dependencies {
 
     // APIs
     api("dev.emortal.api:module-system:1.0.0")
-    api("dev.emortal.api:agones-sdk:1.0.7")
-    api("dev.emortal.api:common-proto-sdk:6a9ad1a")
+    api("dev.emortal.api:agones-sdk:1.1.0")
+    api("dev.emortal.api:common-proto-sdk:fee482e")
     api("dev.emortal.api:live-config-parser:f0728b0")
 
     api("io.kubernetes:client-java:18.0.1")
@@ -47,6 +46,8 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
     }
+
+    withSourcesJar()
 }
 
 tasks {

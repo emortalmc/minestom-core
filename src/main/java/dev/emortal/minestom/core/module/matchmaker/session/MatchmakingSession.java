@@ -5,6 +5,7 @@ import dev.emortal.api.model.matchmaker.PendingMatch;
 import dev.emortal.api.model.matchmaker.Ticket;
 import net.minestom.server.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class MatchmakingSession {
 
@@ -54,6 +55,6 @@ public abstract class MatchmakingSession {
     @FunctionalInterface
     public interface Creator {
 
-        @NotNull MatchmakingSession create(@NotNull Player player, @NotNull GameModeConfig gameMode, @NotNull Ticket ticket);
+        @NotNull MatchmakingSession create(@NotNull Player player, @NotNull GameModeConfig gameMode, @NotNull Ticket ticket, @Nullable PendingMatch pendingMatch);
     }
 }
