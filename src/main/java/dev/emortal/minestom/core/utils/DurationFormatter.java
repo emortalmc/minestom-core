@@ -3,9 +3,11 @@ package dev.emortal.minestom.core.utils;
 import net.minestom.server.utils.time.TimeUnit;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.StringJoiner;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class DurationFormatter {
     private static final Duration YEAR_DURATION = Duration.ofDays(365);
@@ -20,7 +22,7 @@ public final class DurationFormatter {
         return duration.toNanosPart() + "ns";
     }
 
-    public static @NotNull String ofGreatestUnits(@NotNull Duration duration, int unitCount) {
+    public static @NotNull String ofGreatestUnits(@NotNull Duration duration, int unitCount, @Nullable ChronoUnit smallestUnit) {
         StringJoiner builder = new StringJoiner(", ");
 
         long days = duration.toDaysPart();
@@ -31,35 +33,41 @@ public final class DurationFormatter {
             builder.add(years + "y");
             if (--unitCount == 0) return builder.toString();
         }
+        if (smallestUnit == ChronoUnit.YEARS) return builder.toString();
 
         if (days > 0) {
             builder.add(days + "d");
             if (--unitCount == 0) return builder.toString();
         }
+        if (smallestUnit == ChronoUnit.DAYS) return builder.toString();
 
         long hours = duration.toHoursPart();
         if (hours > 0) {
             builder.add(hours + "hr");
             if (--unitCount == 0) return builder.toString();
         }
+        if (smallestUnit == ChronoUnit.HOURS) return builder.toString();
 
         long minutes = duration.toMinutesPart();
         if (minutes > 0) {
             builder.add(minutes + "min");
             if (--unitCount == 0) return builder.toString();
         }
+        if (smallestUnit == ChronoUnit.MINUTES) return builder.toString();
 
         long seconds = duration.toSecondsPart();
         if (seconds > 0) {
             builder.add(seconds + "s");
             if (--unitCount == 0) return builder.toString();
         }
+        if (smallestUnit == ChronoUnit.SECONDS) return builder.toString();
 
         long millis = duration.toMillisPart();
         if (millis > 0) {
             builder.add(millis + "ms");
             if (--unitCount == 0) return builder.toString();
         }
+        if (smallestUnit == ChronoUnit.MILLIS) return builder.toString();
 
         long nanos = duration.toNanosPart();
         if (nanos > 0) {

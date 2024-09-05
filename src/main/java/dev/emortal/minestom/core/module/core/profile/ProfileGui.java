@@ -1,5 +1,6 @@
 package dev.emortal.minestom.core.module.core.profile;
 
+import dev.emortal.api.model.mcplayer.LoginSession;
 import dev.emortal.api.model.mcplayer.McPlayer;
 import dev.emortal.api.utils.EmortalXP;
 import dev.emortal.api.utils.ProtoDurationConverter;
@@ -12,14 +13,16 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.entity.PlayerSkin;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
+import net.minestom.server.item.ItemComponent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
-import net.minestom.server.item.metadata.PlayerHeadMeta;
+import net.minestom.server.item.component.HeadProfile;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 public class ProfileGui extends Inventory {
@@ -28,7 +31,7 @@ public class ProfileGui extends Inventory {
             18, 26,
             27, 28, 34, 35, 36, 37, 38, 39, 41, 42, 43, 44};
     private static final ItemStack BLOCKED_ITEM = ItemStack.builder(Material.BLACK_STAINED_GLASS_PANE)
-            .displayName(Component.text(" "))
+            .set(ItemComponent.CUSTOM_NAME, Component.text(" "))
             .build();
 
     private static final int PLAYER_ICON_SLOT = 4;
@@ -55,13 +58,12 @@ public class ProfileGui extends Inventory {
     }
 
     private ItemStack createPlayerIcon() {
-        PlayerHeadMeta.Builder metaBuilder = new PlayerHeadMeta.Builder();
         dev.emortal.api.model.common.PlayerSkin skin = this.targetPlayer.getCurrentSkin();
-        metaBuilder.playerSkin(new PlayerSkin(skin.getTexture(), skin.getSignature()));
+        HeadProfile headProfile = new HeadProfile(new PlayerSkin(skin.getTexture(), skin.getSignature()));
 
         return ItemStack.builder(Material.PLAYER_HEAD)
-                .meta(metaBuilder.build())
-                .displayName(Component.text(this.targetPlayer.getCurrentUsername(), NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false))
+                .set(ItemComponent.PROFILE, headProfile)
+                .set(ItemComponent.CUSTOM_NAME, Component.text(this.targetPlayer.getCurrentUsername(), NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false))
                 .lore(
                         Component.empty(),
                         this.levelLine().decoration(TextDecoration.ITALIC, false),
@@ -87,7 +89,15 @@ public class ProfileGui extends Inventory {
 
     private Component playtimeLine() {
         Duration playtime = ProtoDurationConverter.fromProto(this.targetPlayer.getHistoricPlayTime());
-        String playtimeFormatted = DurationFormatter.ofGreatestUnits(playtime, 3);
+
+        LoginSession currentSession = this.targetPlayer.getCurrentSession();
+        Duration currentSessionDuration = Duration.between(
+                ProtoTimestampConverter.fromProto(currentSession.getLoginTime()),
+                Instant.now()
+        );
+        playtime = playtime.plus(currentSessionDuration);
+
+        String playtimeFormatted = DurationFormatter.ofGreatestUnits(playtime, 3, ChronoUnit.SECONDS);
 
         return Component.text("Playtime: ", NamedTextColor.GRAY)
                 .append(Component.text(playtimeFormatted, NamedTextColor.GOLD));
@@ -109,7 +119,7 @@ public class ProfileGui extends Inventory {
         } else {
             Instant lastOnline = ProtoTimestampConverter.fromProto(this.targetPlayer.getLastOnline());
             Duration duration = Duration.between(lastOnline, Instant.now());
-            String lastOnlineFormatted = DurationFormatter.ofGreatestUnits(duration, 2);
+            String lastOnlineFormatted = DurationFormatter.ofGreatestUnits(duration, 2, ChronoUnit.SECONDS);
 
             return builder.append(Component.text(lastOnlineFormatted + " ago", NamedTextColor.GOLD)).build();
         }
@@ -117,7 +127,7 @@ public class ProfileGui extends Inventory {
 
     private ItemStack createAchievementsIcon() {
         return ItemStack.builder(Material.DIAMOND)
-                .displayName(Component.text("Achievements", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false))
+                .set(ItemComponent.CUSTOM_NAME, Component.text("Achievements", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false))
                 .lore(
                         Component.empty(),
                         Component.text("Coming Soon...", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)
@@ -127,7 +137,7 @@ public class ProfileGui extends Inventory {
 
     private ItemStack createGameHistoryIcon() {
         return ItemStack.builder(Material.BOOK)
-                .displayName(Component.text("Game History", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false))
+                .set(ItemComponent.CUSTOM_NAME, Component.text("Game History", NamedTextColor.LIGHT_PURPLE).decoration(TextDecoration.ITALIC, false))
                 .lore(
                         Component.empty(),
                         Component.text("Coming Soon...", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)

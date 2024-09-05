@@ -31,8 +31,7 @@ public final class CoreModule extends MinestomModule {
         commandManager.register(new PerformanceCommand(this.eventNode));
 
         if (badgeService != null) commandManager.register(new BadgeCommand(playerService, playerResolver, badgeService));
-        if (playerService != null)
-            commandManager.register(new ProfileCommand(playerService, playerResolver));
+        if (playerService != null) commandManager.register(new ProfileCommand(playerService, playerResolver));
 
         return true;
     }
