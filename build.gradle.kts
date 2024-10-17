@@ -20,23 +20,23 @@ repositories {
 
 dependencies {
     // Minestom
-    api("net.minestom:minestom-snapshots:789befee31")
+    api("net.minestom:minestom-snapshots:0ca1dda2fe")
     api("net.kyori:adventure-text-minimessage:4.15.0")
-    implementation("io.pyroscope:agent:0.12.2")
+    implementation("io.pyroscope:agent:0.14.0")
 
     // Logger
-    implementation("ch.qos.logback:logback-classic:1.5.1")
-    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+    implementation("ch.qos.logback:logback-classic:1.5.11")
+    implementation("net.logstash.logback:logstash-logback-encoder:8.0")
 
     // APIs
     api("dev.emortal.api:module-system:1.0.0")
     api("dev.emortal.api:agones-sdk:1.1.0")
-    api("dev.emortal.api:common-proto-sdk:fee482e")
-    api("dev.emortal.api:live-config-parser:f0728b0")
+    api("dev.emortal.api:common-proto-sdk:2584fd2")
+    api("dev.emortal.api:live-config-parser:d79a69a")
 
     api("io.kubernetes:client-java:18.0.1")
 
-    api("io.micrometer:micrometer-registry-prometheus:1.12.1")
+    api("io.micrometer:micrometer-registry-prometheus:1.13.6")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
