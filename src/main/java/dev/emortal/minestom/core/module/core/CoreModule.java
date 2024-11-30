@@ -7,6 +7,7 @@ import dev.emortal.api.utils.GrpcStubCollection;
 import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.core.badge.BadgeCommand;
 import dev.emortal.minestom.core.module.core.performance.PerformanceCommand;
+import dev.emortal.minestom.core.module.core.playerprovider.EmortalPlayerImpl;
 import dev.emortal.minestom.core.utils.resolver.PlayerResolver;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
@@ -21,6 +22,8 @@ public final class CoreModule extends MinestomModule {
 
     @Override
     public boolean onLoad() {
+        MinecraftServer.getConnectionManager().setPlayerProvider(EmortalPlayerImpl::new);
+
         McPlayerService playerService = GrpcStubCollection.getPlayerService().orElse(null);
         PlayerResolver playerResolver = new PlayerResolver(playerService, MinecraftServer.getConnectionManager());
 

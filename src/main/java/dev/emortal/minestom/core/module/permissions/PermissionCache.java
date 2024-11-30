@@ -12,7 +12,6 @@ import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
-import net.minestom.server.permission.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +64,8 @@ public final class PermissionCache {
      * @param player the player to load
      */
     private void loadUser(@NotNull Player player) {
+        PermissionHolder permHolder = (PermissionHolder) player;
+
         PlayerRolesResponse response;
         try {
             response = this.permissionService.getPlayerRoles(player.getUuid());
@@ -85,8 +86,8 @@ public final class PermissionCache {
             permissions.addAll(role.permissions());
         }
 
-        player.getAllPermissions().clear();
-        player.getAllPermissions().addAll(permissions);
+        permHolder.getPermissions().clear();
+        permHolder.getPermissions().addAll(permissions);
     }
 
     private void updateUserPermissions(@NotNull User user) {
@@ -95,11 +96,12 @@ public final class PermissionCache {
             LOGGER.error("Couldn't find player with id {}", user.id());
             return;
         }
+        PermissionHolder permHolder = (PermissionHolder) player;
 
         Set<Permission> permissions = this.calculatePerms(user.roleIds());
         this.userCache.put(user.id(), user);
-        player.getAllPermissions().clear();
-        player.getAllPermissions().addAll(permissions);
+        permHolder.getPermissions().clear();
+        permHolder.getPermissions().addAll(permissions);
 
         player.refreshCommands();
     }
