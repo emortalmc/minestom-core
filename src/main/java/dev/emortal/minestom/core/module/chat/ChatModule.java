@@ -48,7 +48,7 @@ public final class ChatModule extends MinestomModule {
 
             Player player = event.getPlayer();
             var message = ChatMessage.newBuilder()
-                    .setMessage(event.getMessage())
+                    .setMessage(event.getRawMessage())
                     .setSenderId(player.getUuid().toString())
                     .setSenderUsername(player.getUsername())
                     .build();

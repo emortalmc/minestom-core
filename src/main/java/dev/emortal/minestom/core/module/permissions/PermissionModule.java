@@ -9,7 +9,6 @@ import dev.emortal.minestom.core.Environment;
 import dev.emortal.minestom.core.module.MinestomModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
-import net.minestom.server.permission.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -34,7 +33,7 @@ public final class PermissionModule extends MinestomModule {
         if (!ENABLED) {
             if (GRANT_ALL_PERMISSIONS) {
                 LOGGER.warn("Permission service is not available, granting all permissions");
-                this.eventNode.addListener(AsyncPlayerConfigurationEvent.class, event -> event.getPlayer().addPermission(new Permission("*")));
+                this.eventNode.addListener(AsyncPlayerConfigurationEvent.class, event -> ((PermissionHolder) event.getPlayer()).addPermission(new Permission("*")));
             } else {
                 LOGGER.warn("Permission service is not available, denying all permissions");
             }

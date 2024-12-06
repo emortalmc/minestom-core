@@ -1,6 +1,7 @@
 package dev.emortal.minestom.core;
 
 import dev.emortal.minestom.core.module.monitoring.MonitoringModule;
+import dev.emortal.minestom.core.module.permissions.PermissionHolder;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.command.builder.Command;
@@ -51,7 +52,11 @@ public final class EntrypointTest {
         command.addSyntax((sender, context) -> sender.sendMessage("Hello world 2!"), required, optional);
 
         Command testPermsCmd = new Command("testperms");
-        testPermsCmd.setCondition((sender, commandName) -> sender.hasPermission("command.testperms"));
+        testPermsCmd.setCondition((sender, commandName) -> {
+            if (!(sender instanceof PermissionHolder permHolder)) return false;
+
+            return permHolder.hasPermission("command.testperms");
+        });
         testPermsCmd.setDefaultExecutor((sender, context) -> sender.sendMessage("works :)"));
 
         CommandManager commandManager = MinecraftServer.getCommandManager();
