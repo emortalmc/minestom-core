@@ -20,7 +20,7 @@ repositories {
 
 dependencies {
     // Minestom
-    api("net.minestom:minestom-snapshots:1_21_2-0b0a3aba23")
+    api("net.minestom:minestom-snapshots:ccea53ac44")
     api("net.kyori:adventure-text-minimessage:4.15.0")
     compileOnly("com.github.TogAr2:MinestomPvP:04180ddf9a") // MinestomPvP - Used for PvP Player impl
 
