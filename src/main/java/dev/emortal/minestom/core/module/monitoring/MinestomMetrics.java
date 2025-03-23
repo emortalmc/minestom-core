@@ -61,7 +61,7 @@ public final class MinestomMetrics implements MeterBinder {
             List<MultiGauge.Row<?>> entityRows = new ArrayList<>();
 
             for (Instance instance : MinecraftServer.getInstanceManager().getInstances()) {
-                var tags = Tags.of("instance.id", instance.getUniqueId().toString());
+                var tags = Tags.of("instance.id", instance.getUuid().toString());
 
                 chunkRows.add(MultiGauge.Row.of(tags, instance.getChunks().size()));
                 entityRows.add(MultiGauge.Row.of(tags, instance.getEntities().size()));
