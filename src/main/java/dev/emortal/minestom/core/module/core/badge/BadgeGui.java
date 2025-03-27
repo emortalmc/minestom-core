@@ -7,12 +7,12 @@ import io.grpc.StatusRuntimeException;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.Player;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
 import net.minestom.server.inventory.click.ClickType;
 import net.minestom.server.inventory.condition.InventoryConditionResult;
-import net.minestom.server.item.ItemComponent;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.component.AttributeList;
@@ -164,14 +164,14 @@ public final class BadgeGui {
             lore.add(MINI_MESSAGE.deserialize(REQUIRED_LINE));
         }
 
-        return ItemStack.builder(Material.fromNamespaceId(guiItem.getMaterial()))
-                .set(ItemComponent.ITEM_NAME, MINI_MESSAGE.deserialize(guiItem.getDisplayName()))
-                .set(ItemComponent.LORE, lore)
+        return ItemStack.builder(Material.fromKey(guiItem.getMaterial()))
+                .set(DataComponents.ITEM_NAME, MINI_MESSAGE.deserialize(guiItem.getDisplayName()))
+                .set(DataComponents.LORE, lore)
                 .set(BADGE_ID_TAG, badge.getId())
                 .set(BADGE_NAME_TAG, badge.getFriendlyName())
                 .set(BADGE_ACTIVE_TAG, isActive)
                 .set(BADGE_UNLOCKED_TAG, isOwned)
-                .set(ItemComponent.ATTRIBUTE_MODIFIERS, new AttributeList(List.of(), false)
+                .set(DataComponents.ATTRIBUTE_MODIFIERS, new AttributeList(List.of())
                 ).build();
     }
 }
