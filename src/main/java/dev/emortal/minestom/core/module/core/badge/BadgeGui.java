@@ -9,10 +9,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.inventory.InventoryPreClickEvent;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
-import net.minestom.server.inventory.click.ClickType;
-import net.minestom.server.inventory.condition.InventoryConditionResult;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.item.Material;
 import net.minestom.server.item.component.AttributeList;
@@ -88,7 +87,7 @@ public final class BadgeGui {
         this.canChangeActive = canChangeActive;
 
         this.drawInventory(allBadges, ownedBadgeIds, activeBadgeId);
-        this.inventory.addInventoryCondition(this::onClick);
+        this.inventory.eventNode().addListener(InventoryPreClickEvent.class, this::onClick);
         player.openInventory(this.inventory);
     }
 
@@ -108,13 +107,16 @@ public final class BadgeGui {
         }
     }
 
-    private void onClick(@NotNull Player clicker, int slot, @NotNull ClickType clickType, @NotNull InventoryConditionResult result) {
+    private void onClick(@NotNull InventoryPreClickEvent event) {
+        int slot = event.getSlot();
+        Player clicker = event.getPlayer();
+
         if (slot < 0 || slot >= this.inventory.getSize()) return;
 
         ItemStack clickedItem = this.inventory.getItemStack(slot);
         if (clickedItem.isAir()) return;
 
-        result.setCancel(true);
+        event.setCancelled(true);
 
         if (!this.canChangeActive) {
             clicker.sendMessage(CLICK_CANNOT_CHANGE_ACTIVE);
