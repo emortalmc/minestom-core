@@ -11,9 +11,8 @@ import dev.emortal.minestom.core.module.matchmaker.MatchmakerModule;
 import dev.emortal.minestom.core.module.messaging.MessagingModule;
 import dev.emortal.minestom.core.module.monitoring.MonitoringModule;
 import dev.emortal.minestom.core.module.permissions.PermissionModule;
+import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.extras.MojangAuth;
-import net.minestom.server.extras.velocity.VelocityProxy;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,30 +39,34 @@ public final class MinestomServer {
         this.address = builder.address;
         this.port = builder.port;
 
-        this.server = MinecraftServer.init();
+        if (builder.mojangAuth) {
+            LOGGER.info("Enabling Mojang authentication");
+            this.server = MinecraftServer.init(new Auth.Online());
+        } else {
+            this.server = tryEnableVelocity();
+        }
+
         MinecraftServer.setCompressionThreshold(0);
         this.tryEnableVelocity();
 
-        if (builder.mojangAuth) {
-            LOGGER.info("Enabling Mojang authentication");
-            MojangAuth.init();
-        }
+
 
         this.moduleManager = builder.moduleManagerBuilder.build();
         MinecraftServer.getSchedulerManager().buildShutdownTask(this.moduleManager::onUnload);
     }
 
-    private void tryEnableVelocity() {
+    private MinecraftServer tryEnableVelocity() {
         String forwardingSecret = System.getenv("VELOCITY_FORWARDING_SECRET");
         if (forwardingSecret == null) {
             LOGGER.warn("Not enabling Velocity forwarding, no secret was provided");
 
             if (Environment.isProduction()) System.exit(1); // If in prod, kill the server
-            return;
+            return MinecraftServer.init();
         }
 
         LOGGER.info("Enabling Velocity forwarding");
-        VelocityProxy.enable(forwardingSecret);
+
+        return MinecraftServer.init(new Auth.Velocity(forwardingSecret));
     }
 
     public void start() {
