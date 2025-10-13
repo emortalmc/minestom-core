@@ -28,7 +28,7 @@ dependencies {
     api("net.minestom:minestom:2025.10.11-1.21.10")
     api("net.kyori:adventure-text-minimessage:4.25.0")
 
-    implementation("io.pyroscope:agent:0.14.0")
+//    implementation("io.pyroscope:agent:0.14.0")
     implementation("org.apache.kafka:kafka-clients:4.1.0")
 
     // Logger

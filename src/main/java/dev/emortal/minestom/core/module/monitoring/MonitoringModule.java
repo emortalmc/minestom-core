@@ -15,11 +15,6 @@ import io.micrometer.core.instrument.binder.system.UptimeMetrics;
 import io.micrometer.prometheusmetrics.PrometheusConfig;
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import io.micrometer.prometheusmetrics.PrometheusRenameFilter;
-import io.pyroscope.http.Format;
-import io.pyroscope.javaagent.EventType;
-import io.pyroscope.javaagent.PyroscopeAgent;
-import io.pyroscope.javaagent.config.Config;
-import io.pyroscope.labels.Pyroscope;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,9 +22,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @ModuleData(name = "monitoring")
@@ -38,7 +30,7 @@ public final class MonitoringModule extends MinestomModule {
 
     private static final String FLEET_NAME = Objects.requireNonNullElse(System.getenv("FLEET_NAME"), "unknown");
     private static final String NAMESPACE = Objects.requireNonNullElse(System.getenv("NAMESPACE"), "unknown");
-    private static final String PYROSCOPE_ADDRESS = System.getenv("PYROSCOPE_ADDRESS");
+//    private static final String PYROSCOPE_ADDRESS = System.getenv("PYROSCOPE_ADDRESS");
 
     public MonitoringModule(@NotNull ModuleEnvironment environment) {
         super(environment);
@@ -57,11 +49,11 @@ public final class MonitoringModule extends MinestomModule {
         registry.config().meterFilter(new PrometheusRenameFilter())
                 .commonTags("fleet", FLEET_NAME, "server", Environment.getHostname());
 
-        if (PYROSCOPE_ADDRESS == null) {
-            LOGGER.warn("PYROSCOPE_ADDRESS not set. Pyroscope will not be enabled.");
-        } else {
-            this.setupPyroscope();
-        }
+//        if (PYROSCOPE_ADDRESS == null) {
+//            LOGGER.warn("PYROSCOPE_ADDRESS not set. Pyroscope will not be enabled.");
+//        } else {
+//            this.setupPyroscope();
+//        }
 
         // Java
         new ClassLoaderMetrics().bindTo(registry);
@@ -98,27 +90,27 @@ public final class MonitoringModule extends MinestomModule {
         return true;
     }
 
-    private void setupPyroscope() {
-        Pyroscope.setStaticLabels(Map.of(
-                "pod", Environment.getHostname(),
-                "namespace", NAMESPACE
-        ));
-
-        Config config = new Config.Builder()
-                .setApplicationName(FLEET_NAME)
-                .setProfilingEvent(EventType.ITIMER)
-                .setFormat(Format.JFR)
-                .setProfilingLock("10ms")
-                .setProfilingAlloc("512k")
-                .setUploadInterval(Duration.ofSeconds(10))
-                .setServerAddress(PYROSCOPE_ADDRESS)
-                .build();
-
-        String labels = Pyroscope.getStaticLabels().toString();
-        LOGGER.info("Starting Pyroscope with: [{}, applicationName={}]", labels, config.applicationName);
-
-        PyroscopeAgent.start(new PyroscopeAgent.Options.Builder(config).build());
-    }
+//    private void setupPyroscope() {
+//        Pyroscope.setStaticLabels(Map.of(
+//                "pod", Environment.getHostname(),
+//                "namespace", NAMESPACE
+//        ));
+//
+//        Config config = new Config.Builder()
+//                .setApplicationName(FLEET_NAME)
+//                .setProfilingEvent(EventType.ITIMER)
+//                .setFormat(Format.JFR)
+//                .setProfilingLock("10ms")
+//                .setProfilingAlloc("512k")
+//                .setUploadInterval(Duration.ofSeconds(10))
+//                .setServerAddress(PYROSCOPE_ADDRESS)
+//                .build();
+//
+//        String labels = Pyroscope.getStaticLabels().toString();
+//        LOGGER.info("Starting Pyroscope with: [{}, applicationName={}]", labels, config.applicationName);
+//
+//        PyroscopeAgent.start(new PyroscopeAgent.Options.Builder(config).build());
+//    }
 
     @Override
     public void onUnload() {
