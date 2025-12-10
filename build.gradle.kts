@@ -25,7 +25,8 @@ repositories {
 
 dependencies {
     // Minestom
-    api("net.minestom:minestom:2025.10.11-1.21.10")
+//    api("net.minestom:minestom:2025.10.11-1.21.10")
+    api("com.github.Minestom:Minestom:17bdf55256")
     api("net.kyori:adventure-text-minimessage:4.25.0")
 
 //    implementation("io.pyroscope:agent:0.14.0")
@@ -55,6 +56,10 @@ java {
     }
 
     withSourcesJar()
+}
+
+tasks.withType<JavaCompile> {
+    options.isDeprecation = true
 }
 
 tasks {

@@ -1,11 +1,9 @@
 package dev.emortal.minestom.core.module.core.performance;
 
-import dev.emortal.minestom.core.utils.DurationFormatter;
-import dev.emortal.minestom.core.utils.ProgressBar;
 import com.sun.management.GarbageCollectorMXBean;
 import com.sun.management.GcInfo;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import dev.emortal.minestom.core.utils.DurationFormatter;
+import dev.emortal.minestom.core.utils.ProgressBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;
@@ -13,6 +11,7 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.minestom.server.MinecraftServer;
+import net.minestom.server.ServerFlag;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandContext;
@@ -23,19 +22,17 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class PerformanceCommand extends Command {
     private static final long SECONDS_IN_NANO = 1_000_000_000L;
-    private static final int TPS = MinecraftServer.TICK_PER_SECOND;
+    private static final int TPS = ServerFlag.SERVER_TICKS_PER_SECOND;
     private static final BigDecimal TPS_BASE = BigDecimal.valueOf(SECONDS_IN_NANO).multiply(BigDecimal.valueOf(TPS));
 
     private static final Component VALUE_SEPARATOR = Component.text(", ");

@@ -1,9 +1,10 @@
 package dev.emortal.minestom.core.module.core.performance;
 
+import net.minestom.server.ServerFlag;
+import org.jetbrains.annotations.NotNull;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import net.minestom.server.MinecraftServer;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * This code is taken from Paper, licensed under the MIT license.
@@ -14,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class TpsRollingAverage {
     private static final long SECONDS_IN_NANO = 1_000_000_000L;
-    private static final BigDecimal TPS = BigDecimal.valueOf(MinecraftServer.TICK_PER_SECOND);
+    private static final BigDecimal TPS = BigDecimal.valueOf(ServerFlag.SERVER_TICKS_PER_SECOND);
 
     private final int size;
     private long time;
